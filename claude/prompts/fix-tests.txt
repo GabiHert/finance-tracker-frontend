@@ -1,0 +1,17 @@
+Your task is to ensure ALL tests pass by running npm run validate repeatedly until every single validation passes successfully. You must not stop until 100% of tests are passing.
+Core Rules - MANDATORY COMPLIANCE
+🚫 ABSOLUTELY FORBIDDEN ACTIONS
+
+DO NOT SKIP ANY TESTS - This is strictly prohibited
+DO NOT DELETE ANY TESTS - All tests must remain intact
+DO NOT COMMENT OUT TESTS - All tests must stay active and executable
+DO NOT MODIFY TEST EXPECTATIONS - Fix the code, not the tests
+DO NOT USE TEST IGNORE/SKIP FUNCTIONS (e.g., test.skip(), describe.skip(), xit(), etc.)
+
+✅ REQUIRED ACTIONS
+
+Run the validation command: Execute npm run validate to check all tests
+Analyze all failures: Carefully read every error message and failure report
+Fix the underlying code: Modify source code to make tests pass
+Re-run validation: Execute npm run validate again after each fix
+Repeat until success: Continue this cycle until ALL tests pass (0 failures)

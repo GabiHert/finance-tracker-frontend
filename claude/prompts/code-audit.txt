@@ -1,0 +1,110 @@
+Code Repository Audit Instructions
+You are an expert code auditor tasked with performing a comprehensive analysis of this entire repository.
+Your goal is to identify issues and create a detailed catalog for review, NOT to fix them immediately.
+Put all your findings into the file fixes_<date>.txt located in the /claude/fixes/pending directory.
+
+Systematically scan the entire codebase and identify:
+
+Code Quality Issues
+
+Code duplication - Repeated logic, functions, or components
+Bad practices - Improper error handling, magic numbers, hardcoded values
+Inconsistent patterns - Mixed coding styles, naming conventions
+Dead code - Unused imports, functions, variables, or files
+Complex functions - Functions that are too long or have too many responsibilities
+
+Organization & Structure
+
+Architecture violations - Code not following established project patterns
+File organization - Misplaced files, incorrect folder structure
+Import/export issues - Circular dependencies, unused exports
+Naming conventions - Non-standard file, function, or variable naming
+
+Technology-Specific Issues
+
+CSS in HTML - Inline styles that should be in separate CSS files
+HTML issues - Missing semantic elements, accessibility problems
+JavaScript/TypeScript - Missing types, unused variables, console.logs
+Framework violations - Not following React/Vue/Angular best practices
+
+Security Issues
+
+Exposed secrets - API keys, passwords, tokens in code
+XSS vulnerabilities - Unescaped user input
+Insecure dependencies - Outdated packages with known vulnerabilities
+CORS misconfigurations - Overly permissive cross-origin settings
+
+Performance Issues
+
+Inefficient algorithms - O(n²) where O(n) possible
+Memory leaks - Event listeners not cleaned up, unclosed resources
+Bundle size - Unnecessarily large imports, unused dependencies
+Database queries - N+1 problems, missing indexes
+
+Documentation & Comments
+
+Commented code - Old code left as comments (should be removed)
+TODO comments - Unfinished work markers
+Missing documentation - Complex functions without explanations
+Outdated comments - Comments that no longer match the code
+Any comments - Comments should be deleted and replaced by good well written code and variable names
+
+Output Format
+For each issue found, create an entry using this exact format:
+**Fix ID: [CATEGORY]-[NUMBER]** ❌ NOT FIXED
+File: [relative/path/to/file]:[line-start]-[line-end]
+Issue: [Brief description of the problem]
+Fix: [Recommended solution approach]
+Location: [Where fix should be implemented]
+Criticality: [CRITICAL|HIGH|MEDIUM|LOW]
+Details: [Additional context, code snippets, or explanation]
+Status: Cataloged for review
+Criticality Levels
+
+CRITICAL: Security vulnerabilities, data loss risks, application crashes
+HIGH: Performance bottlenecks, major architecture violations, accessibility issues
+MEDIUM: Code duplication, maintainability concerns, minor security issues
+LOW: Style inconsistencies, minor optimizations, documentation gaps
+
+Category Codes
+
+SEC: Security issues
+PERF: Performance problems
+DUP: Code duplication
+ORG: Organization/structure issues
+TYPE: TypeScript/typing issues
+CSS: Styling and CSS problems
+DOC: Documentation and comments
+DEPS: Dependencies and imports
+ARCH: Architecture violations
+ASS: ACCESSIBILITY ISSUES
+
+Important Instructions
+
+DO NOT FIX ANYTHING - Only catalog and document issues
+BE THOROUGH - Scan every file in the repository
+BE SPECIFIC - Include exact line numbers and file paths
+PRIORITIZE - Start with critical security and performance issues
+GROUP SIMILAR - If you find the same pattern repeated, create one entry per instance
+PROVIDE CONTEXT - Explain why something is an issue and how to fix it
+FOLLOW RULES - Follow the rules located in CLAUDE.md above all times
+
+Example Output
+**Fix ID: SEC-001** ❌ NOT FIXED
+File: src/config/database.js:12-15
+Issue: Database credentials hardcoded in source code
+Fix: Move credentials to environment variables and use dotenv
+Location: .env file and src/config/database.js
+Criticality: CRITICAL
+Details: Database password "admin123" is exposed in source code. Create environment variables DB_HOST, DB_USER, DB_PASS and load via process.env
+Status: Cataloged for review
+
+**Fix ID: DUP-002** ❌ NOT FIXED
+File: src/components/UserCard.tsx:23-45, src/components/ProfileCard.tsx:18-40
+Issue: Duplicate user formatting logic in two components
+Fix: Extract shared logic into utils/formatUser.ts helper function
+Location: src/utils/formatUser.ts
+Criticality: MEDIUM
+Details: Both components contain identical logic for formatting user display names and avatar URLs. Extract to shared utility.
+Status: Cataloged for review
+Start your audit now and provide a comprehensive catalog of all issues found.

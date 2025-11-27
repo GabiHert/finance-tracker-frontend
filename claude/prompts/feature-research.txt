@@ -1,0 +1,300 @@
+# Feature Research and Planning Instructions
+
+You are tasked with creating a comprehensive feature implementation plan. Follow these instructions carefully to generate a detailed feature specification that will guide the implementation process.
+
+## Pre-Requirements
+
+1. **Read and understand `/claude.md`** - All decisions must follow the project's coding standards and rules
+2. **Analyze the current codebase structure** - Understand existing patterns, components, and architecture
+3. **Identify reusable components** - Look for existing functions, components, and utilities that can be leveraged
+4. **Review similar features** - Check if there are existing implementations that can serve as reference
+
+## Feature File Creation
+
+Create a new feature file at: `/claude/features/pending/<feature-name>.txt`
+
+**Naming Convention**: Use kebab-case for feature names (e.g., `user-dashboard`, `payment-integration`)
+
+## Feature File Structure
+
+### 1. Feature Overview
+```
+# Feature: [Feature Name]
+
+## Description
+[2-3 sentences describing what this feature does and its purpose]
+
+## User Story
+As a [user type], I want [goal] so that [benefit].
+
+## Business Value
+- [Why this feature is important]
+- [Expected impact or outcomes]
+```
+
+### 2. Functional Requirements
+```
+## Functional Requirements
+
+### Core Functionality
+- [List primary functions the feature must perform]
+- [Include user interactions and system behaviors]
+
+### User Interface Requirements
+- [Layout specifications]
+- [Component requirements]
+- [Responsive design considerations]
+
+### Data Requirements
+- [What data is needed]
+- [Data sources and APIs]
+- [Data validation rules]
+```
+
+### 3. Definition of Done
+```
+## Definition of Done
+
+### Functionality Checklist
+- [ ] All functional requirements implemented
+- [ ] Feature works across all supported browsers
+- [ ] Mobile responsiveness verified
+- [ ] Error handling implemented
+- [ ] Loading states implemented
+
+### Code Quality Checklist
+- [ ] Code follows all rules in claude.md
+- [ ] TypeScript types properly defined
+- [ ] ESLint and Prettier rules passed
+- [ ] No console.log statements in production code
+- [ ] Code is properly documented
+
+### Testing Checklist
+- [ ] Unit tests written with >80% coverage
+- [ ] Integration tests for API interactions
+- [ ] Component tests for UI elements
+- [ ] End-to-end tests for critical user flows
+- [ ] Manual testing completed
+- [ ] Accessibility testing performed
+
+### Documentation Checklist
+- [ ] README updated if necessary
+- [ ] API documentation updated
+- [ ] Component documentation added
+- [ ] Feature usage documented
+```
+
+### 4. Security Considerations
+```
+## Security Requirements
+
+### Authentication & Authorization
+- [Define required user permissions]
+- [Session handling requirements]
+- [Role-based access controls]
+
+### Data Protection
+- [Input validation and sanitization]
+- [XSS prevention measures]
+- [CSRF protection requirements]
+- [Data encryption needs]
+
+### API Security
+- [Rate limiting considerations]
+- [Input validation on endpoints]
+- [Secure data transmission]
+
+### Client-Side Security
+- [Secure storage of sensitive data]
+- [Protection against common vulnerabilities]
+```
+
+### 5. Performance Requirements
+```
+## Performance Specifications
+
+### Loading Performance
+- [Page load time targets]
+- [Bundle size considerations]
+- [Lazy loading requirements]
+
+### Runtime Performance
+- [Response time requirements]
+- [Memory usage constraints]
+- [CPU usage optimization]
+
+### Scalability Considerations
+- [Expected user load]
+- [Data volume handling]
+- [Caching strategies]
+
+### Optimization Strategies
+- [Code splitting approaches]
+- [Image optimization]
+- [API call optimization]
+```
+
+### 6. Maintainability Guidelines
+```
+## Code Quality Standards
+
+### Architecture Principles
+- [Component structure guidelines]
+- [State management patterns]
+- [Error handling patterns]
+
+### Best Practices
+- [Naming conventions to follow]
+- [Code organization standards]
+- [Reusability considerations]
+
+### Documentation Requirements
+- [Inline code documentation]
+- [Component prop documentation]
+- [Complex logic explanation]
+
+### Future Extensibility
+- [How this feature can be extended]
+- [Potential integration points]
+- [Configuration flexibility]
+```
+
+### 7. Implementation Plan
+```
+## Step-by-Step Implementation Tasks
+
+### Phase 1: Setup and Structure
+1. **Create base file structure**
+   - Create component directories following project structure
+   - Set up routing if needed
+   - Create initial TypeScript interfaces
+
+2. **Set up data layer**
+   - Define API endpoints or data sources
+   - Create service functions
+   - Set up state management
+
+### Phase 2: Core Implementation
+3. **Implement core components**
+   - [List specific components to create]
+   - [Include reusable components to leverage]
+
+4. **Add business logic**
+   - [Specific logic implementations]
+   - [Integration with existing systems]
+
+5. **Implement user interface**
+   - [Layout implementation]
+   - [Styling according to design system]
+
+### Phase 3: Integration and Polish
+6. **Add error handling**
+   - [Specific error scenarios to handle]
+   - [User feedback mechanisms]
+
+7. **Implement loading states**
+   - [Loading indicators]
+   - [Progressive loading strategies]
+
+8. **Add form validation** (if applicable)
+   - [Validation rules]
+   - [Error message display]
+
+### Phase 4: Testing and Optimization
+9. **Write comprehensive tests**
+   - Unit tests for utilities and business logic
+   - Component tests for UI elements
+   - Integration tests for API calls
+   - E2E tests for user workflows
+
+10. **Performance optimization**
+    - [Specific optimizations needed]
+    - [Bundle size analysis]
+
+11. **Security review**
+    - [Security testing checklist]
+    - [Vulnerability assessment]
+
+### Phase 5: Documentation and Deployment
+12. **Update documentation**
+    - [Specific documentation updates]
+    - [Usage examples]
+
+13. **Code review and refinement**
+    - [Peer review checklist]
+    - [Code quality verification]
+```
+
+### 8. Dependencies and Reusable Components
+```
+## Existing Code to Leverage
+
+### Components to Reuse
+- [List existing components that can be used]
+- [Location and usage notes]
+
+### Utilities to Leverage
+- [Existing utility functions]
+- [Helper services or hooks]
+
+### APIs and Services
+- [Existing API endpoints]
+- [Service layer functions]
+
+### Third-party Dependencies
+- [Required new packages (justify why)]
+- [Existing packages that will be used]
+```
+
+### 9. Risks and Considerations
+```
+## Potential Challenges
+
+### Technical Risks
+- [Potential implementation challenges]
+- [Mitigation strategies]
+
+### Dependencies
+- [External system dependencies]
+- [Team dependencies]
+
+### Timeline Considerations
+- [Estimated effort]
+- [Critical path items]
+```
+
+## Research Instructions
+
+Before creating the implementation plan:
+
+1. **Analyze the codebase** to understand:
+   - Current architecture patterns
+   - Existing similar components
+   - Code organization structure
+   - Testing patterns in use
+
+2. **Identify reusable elements**:
+   - Search for existing components that can be leveraged
+   - Find utility functions that can be reused
+   - Locate similar API patterns
+
+3. **Review project standards**:
+   - Check claude.md for coding standards
+   - Understand the project's state management approach
+   - Review existing error handling patterns
+
+4. **Consider the bigger picture**:
+   - How this feature fits into the overall application
+   - Future extensibility requirements
+   - Integration points with other features
+
+## Important Notes
+
+- **Always prioritize code reuse** over creating new implementations
+- **Follow established patterns** in the codebase consistently
+- **Consider accessibility** from the beginning of implementation
+- **Plan for error scenarios** and edge cases
+- **Think about the user experience** throughout the feature
+- **Ensure the feature is testable** at every level
+
+Remember: This document serves as a blueprint for implementation. Be thorough in your research and planning to ensure smooth development and high-quality results.
