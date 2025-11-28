@@ -8,6 +8,7 @@ import { GoalsScreen } from '@main/features/goals'
 import { DashboardScreen } from '@main/features/dashboard'
 import { GroupsScreen, GroupDetailScreen } from '@main/features/groups'
 import { SettingsScreen } from '@main/features/settings'
+import { AppLayout, ToastProvider } from '@main/components/layout'
 
 function ForgotPasswordPlaceholder() {
 	return (
@@ -24,55 +25,40 @@ function ForgotPasswordPlaceholder() {
 	)
 }
 
-function DashboardPlaceholder() {
+function AuthenticatedRoute({ children }: { children: React.ReactNode }) {
 	return (
-		<div className="min-h-screen flex flex-col items-center justify-center p-8 bg-[var(--color-background)]">
-			<header className="text-center">
-				<h1 className="text-4xl font-bold text-[var(--color-primary)] mb-4">
-					Finance Tracker
-				</h1>
-				<p className="text-lg text-[var(--color-text-secondary)] mb-8">
-					Gerencie suas financas de forma simples e eficiente
-				</p>
-			</header>
-
-			<main className="w-full max-w-md">
-				<div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] shadow-lg p-6 border border-[var(--color-border)]">
-					<h2 className="text-xl font-semibold mb-4 text-[var(--color-text)]">
-						Bem-vindo
-					</h2>
-					<p className="text-[var(--color-text-secondary)]">
-						Sua aplicacao de controle financeiro esta pronta para uso.
-					</p>
-				</div>
-			</main>
-
-			<footer className="mt-8 text-center text-sm text-[var(--color-text-secondary)]">
-				<p>Finance Tracker &copy; {new Date().getFullYear()}</p>
-			</footer>
-		</div>
+		<AppLayout>
+			{children}
+		</AppLayout>
 	)
 }
 
 function App() {
 	return (
 		<BrowserRouter>
-			<Routes>
-				<Route path="/login" element={<LoginScreen />} />
-				<Route path="/register" element={<RegisterScreen />} />
-				<Route path="/forgot-password" element={<ForgotPasswordPlaceholder />} />
-				<Route path="/dashboard" element={<DashboardScreen />} />
-				<Route path="/test/components" element={<TestComponentsScreen />} />
-				<Route path="/categories" element={<CategoriesScreen />} />
-				<Route path="/transactions" element={<TransactionsScreen />} />
-				<Route path="/rules" element={<RulesScreen />} />
-				<Route path="/goals" element={<GoalsScreen />} />
-				<Route path="/groups" element={<GroupsScreen />} />
-				<Route path="/groups/:groupId" element={<GroupDetailScreen />} />
-				<Route path="/settings" element={<SettingsScreen />} />
-				<Route path="/" element={<Navigate to="/login" replace />} />
-				<Route path="*" element={<Navigate to="/login" replace />} />
-			</Routes>
+			<ToastProvider>
+				<Routes>
+					{/* Public routes */}
+					<Route path="/login" element={<LoginScreen />} />
+					<Route path="/register" element={<RegisterScreen />} />
+					<Route path="/forgot-password" element={<ForgotPasswordPlaceholder />} />
+
+					{/* Authenticated routes with AppLayout */}
+					<Route path="/dashboard" element={<AuthenticatedRoute><DashboardScreen /></AuthenticatedRoute>} />
+					<Route path="/test/components" element={<AuthenticatedRoute><TestComponentsScreen /></AuthenticatedRoute>} />
+					<Route path="/categories" element={<AuthenticatedRoute><CategoriesScreen /></AuthenticatedRoute>} />
+					<Route path="/transactions" element={<AuthenticatedRoute><TransactionsScreen /></AuthenticatedRoute>} />
+					<Route path="/rules" element={<AuthenticatedRoute><RulesScreen /></AuthenticatedRoute>} />
+					<Route path="/goals" element={<AuthenticatedRoute><GoalsScreen /></AuthenticatedRoute>} />
+					<Route path="/groups" element={<AuthenticatedRoute><GroupsScreen /></AuthenticatedRoute>} />
+					<Route path="/groups/:groupId" element={<AuthenticatedRoute><GroupDetailScreen /></AuthenticatedRoute>} />
+					<Route path="/settings" element={<AuthenticatedRoute><SettingsScreen /></AuthenticatedRoute>} />
+
+					{/* Redirects */}
+					<Route path="/" element={<Navigate to="/login" replace />} />
+					<Route path="*" element={<Navigate to="/login" replace />} />
+				</Routes>
+			</ToastProvider>
 		</BrowserRouter>
 	)
 }

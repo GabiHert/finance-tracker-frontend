@@ -54,7 +54,7 @@ export function CategoriesScreen() {
 	}
 
 	return (
-		<div className="min-h-screen p-6 bg-[var(--color-background)]">
+		<div data-testid="categories-screen" className="min-h-screen p-6 bg-[var(--color-background)]">
 			<div className="max-w-6xl mx-auto">
 				<div className="flex items-center justify-between mb-6">
 					<h1 className="text-2xl font-bold text-[var(--color-text)]">
@@ -74,7 +74,7 @@ export function CategoriesScreen() {
 							data-testid="category-search"
 							placeholder="Search categories..."
 							value={searchQuery}
-							onChange={(e) => setSearchQuery(e.target.value)}
+							onChange={setSearchQuery}
 						/>
 					</div>
 					<div className="w-full sm:w-48">
