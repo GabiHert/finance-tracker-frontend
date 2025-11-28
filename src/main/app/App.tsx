@@ -5,6 +5,7 @@ import { CategoriesScreen } from '@main/features/categories'
 import { TransactionsScreen } from '@main/features/transactions'
 import { RulesScreen } from '@main/features/rules'
 import { GoalsScreen } from '@main/features/goals'
+import { DashboardScreen } from '@main/features/dashboard'
 
 function ForgotPasswordPlaceholder() {
 	return (
@@ -58,7 +59,7 @@ function App() {
 				<Route path="/login" element={<LoginScreen />} />
 				<Route path="/register" element={<RegisterScreen />} />
 				<Route path="/forgot-password" element={<ForgotPasswordPlaceholder />} />
-				<Route path="/dashboard" element={<DashboardPlaceholder />} />
+				<Route path="/dashboard" element={<DashboardScreen />} />
 				<Route path="/test/components" element={<TestComponentsScreen />} />
 				<Route path="/categories" element={<CategoriesScreen />} />
 				<Route path="/transactions" element={<TransactionsScreen />} />
