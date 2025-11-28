@@ -28,3 +28,5 @@ export {
 export { Select, type SelectProps, type SelectOption } from './ui/Select'
 export { IconPicker, type IconPickerProps, CATEGORY_ICONS, ICON_NAMES } from './ui/IconPicker'
 export { ColorPicker, type ColorPickerProps, PRESET_COLORS, COLOR_NAMES } from './ui/ColorPicker'
+export { CurrencyInput, type CurrencyInputProps } from './ui/CurrencyInput'
+export { DatePicker, type DatePickerProps } from './ui/DatePicker'

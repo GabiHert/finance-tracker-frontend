@@ -10,6 +10,8 @@ import { Button } from '@main/components/ui/Button'
 import { Select, type SelectOption } from '@main/components/ui/Select'
 import { IconPicker } from '@main/components/ui/IconPicker'
 import { ColorPicker } from '@main/components/ui/ColorPicker'
+import { CurrencyInput } from '@main/components/ui/CurrencyInput'
+import { DatePicker } from '@main/components/ui/DatePicker'
 
 const basicOptions: SelectOption[] = [
 	{ value: '1', label: 'Option 1' },
@@ -45,6 +47,13 @@ export function TestComponentsScreen() {
 
 	// Color Picker state
 	const [selectedColor, setSelectedColor] = useState('#3B82F6')
+
+	// CurrencyInput state
+	const [currencyValue, setCurrencyValue] = useState(0)
+	const [negativeCurrencyValue, setNegativeCurrencyValue] = useState(0)
+
+	// DatePicker state
+	const [dateValue, setDateValue] = useState('')
 
 	const handleCardClick = () => {
 		setClickCount(prev => prev + 1)
@@ -405,6 +414,97 @@ export function TestComponentsScreen() {
 							value={selectedColor}
 							onChange={setSelectedColor}
 						/>
+					</div>
+				</section>
+
+				{/* CurrencyInput Section */}
+				<section>
+					<h2 className="text-xl font-semibold mb-4 text-[var(--color-text)]">
+						Currency Input Component
+					</h2>
+
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
+						{/* Basic CurrencyInput */}
+						<div>
+							<CurrencyInput
+								label="Amount"
+								value={currencyValue}
+								onChange={setCurrencyValue}
+								data-testid="currency-input"
+							/>
+						</div>
+
+						{/* Negative CurrencyInput */}
+						<div>
+							<CurrencyInput
+								label="Expense Amount"
+								value={negativeCurrencyValue}
+								onChange={setNegativeCurrencyValue}
+								allowNegative
+								data-testid="currency-input-negative"
+							/>
+						</div>
+
+						{/* Error CurrencyInput */}
+						<div>
+							<CurrencyInput
+								label="Amount with Error"
+								value={0}
+								onChange={() => {}}
+								error="Value is required"
+							/>
+						</div>
+
+						{/* Disabled CurrencyInput */}
+						<div>
+							<CurrencyInput
+								label="Disabled Amount"
+								value={1000}
+								onChange={() => {}}
+								disabled
+								data-testid="currency-input-disabled"
+							/>
+						</div>
+					</div>
+				</section>
+
+				{/* DatePicker Section */}
+				<section>
+					<h2 className="text-xl font-semibold mb-4 text-[var(--color-text)]">
+						Date Picker Component
+					</h2>
+
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
+						{/* Basic DatePicker */}
+						<div>
+							<DatePicker
+								label="Date"
+								value={dateValue}
+								onChange={setDateValue}
+								data-testid="date-picker"
+							/>
+						</div>
+
+						{/* Error DatePicker */}
+						<div>
+							<DatePicker
+								label="Date with Error"
+								value=""
+								onChange={() => {}}
+								error="Date is required"
+							/>
+						</div>
+
+						{/* Disabled DatePicker */}
+						<div>
+							<DatePicker
+								label="Disabled Date"
+								value="15/01/2024"
+								onChange={() => {}}
+								disabled
+								data-testid="date-picker-disabled"
+							/>
+						</div>
 					</div>
 				</section>
 			</div>

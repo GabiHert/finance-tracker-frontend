@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { LoginScreen, RegisterScreen } from '@main/features/auth'
 import { TestComponentsScreen } from '@main/features/test-components'
 import { CategoriesScreen } from '@main/features/categories'
+import { TransactionsScreen } from '@main/features/transactions'
 
 function ForgotPasswordPlaceholder() {
 	return (
@@ -58,6 +59,7 @@ function App() {
 				<Route path="/dashboard" element={<DashboardPlaceholder />} />
 				<Route path="/test/components" element={<TestComponentsScreen />} />
 				<Route path="/categories" element={<CategoriesScreen />} />
+				<Route path="/transactions" element={<TransactionsScreen />} />
 				<Route path="/" element={<Navigate to="/login" replace />} />
 				<Route path="*" element={<Navigate to="/login" replace />} />
 			</Routes>

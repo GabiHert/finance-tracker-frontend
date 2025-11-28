@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from '@test/fixtures'
 
 test.describe('Finance Tracker App', () => {
 	test('should load the application', async ({ page }) => {

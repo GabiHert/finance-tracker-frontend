@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from '@test/fixtures'
 
 test.describe('Input Component', () => {
 	test.beforeEach(async ({ page }) => {
