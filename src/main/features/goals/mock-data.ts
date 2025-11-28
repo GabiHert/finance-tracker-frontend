@@ -1,0 +1,57 @@
+import type { Goal } from './types'
+
+export const mockGoals: Goal[] = [
+	{
+		id: 'goal-1',
+		categoryId: 'cat-1',
+		categoryName: 'Alimentacao',
+		categoryIcon: 'utensils',
+		categoryColor: '#F59E0B',
+		limitAmount: 2000,
+		currentAmount: 1500,
+		alertOnExceed: true,
+		period: 'monthly',
+		startDate: '2025-11-01',
+		endDate: '2025-11-30',
+		createdAt: '2025-11-01T00:00:00Z',
+		updatedAt: '2025-11-01T00:00:00Z',
+	},
+	{
+		id: 'goal-2',
+		categoryId: 'cat-2',
+		categoryName: 'Transporte',
+		categoryIcon: 'car',
+		categoryColor: '#3B82F6',
+		limitAmount: 800,
+		currentAmount: 450,
+		alertOnExceed: true,
+		period: 'monthly',
+		startDate: '2025-11-01',
+		endDate: '2025-11-30',
+		createdAt: '2025-11-01T00:00:00Z',
+		updatedAt: '2025-11-01T00:00:00Z',
+	},
+	{
+		id: 'goal-3',
+		categoryId: 'cat-3',
+		categoryName: 'Entretenimento',
+		categoryIcon: 'gamepad',
+		categoryColor: '#EF4444',
+		limitAmount: 500,
+		currentAmount: 650,
+		alertOnExceed: true,
+		period: 'monthly',
+		startDate: '2025-11-01',
+		endDate: '2025-11-30',
+		createdAt: '2025-11-01T00:00:00Z',
+		updatedAt: '2025-11-01T00:00:00Z',
+	},
+]
+
+export const mockCategories = [
+	{ id: 'cat-1', name: 'Alimentacao', icon: 'utensils', color: '#F59E0B' },
+	{ id: 'cat-2', name: 'Transporte', icon: 'car', color: '#3B82F6' },
+	{ id: 'cat-3', name: 'Entretenimento', icon: 'gamepad', color: '#EF4444' },
+	{ id: 'cat-4', name: 'Saude', icon: 'heart', color: '#10B981' },
+	{ id: 'cat-5', name: 'Educacao', icon: 'book', color: '#8B5CF6' },
+]
