@@ -4,6 +4,7 @@ import { Button } from '@main/components/ui/Button'
 import { Modal } from '@main/components/ui/Modal'
 import { FilterBar } from './components/FilterBar'
 import { TransactionRow } from './components/TransactionRow'
+import { ImportWizard } from './components/ImportWizard'
 import { TransactionModal } from './TransactionModal'
 import { mockTransactions } from './mock-data'
 import type { Transaction, TransactionFilters, TransactionFormData } from './types'
@@ -27,6 +28,7 @@ export function TransactionsScreen() {
 	const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
 	const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null)
 	const [showBulkDeleteConfirmation, setShowBulkDeleteConfirmation] = useState(false)
+	const [isImportModalOpen, setIsImportModalOpen] = useState(false)
 
 	// Filter transactions
 	const filteredTransactions = useMemo(() => {
@@ -152,6 +154,16 @@ export function TransactionsScreen() {
 	const handleSaveTransaction = useCallback((data: TransactionFormData) => {
 		console.log('Save transaction:', data)
 		setIsModalOpen(false)
+	}, [])
+
+	const handleImport = useCallback(() => {
+		setIsImportModalOpen(true)
+	}, [])
+
+	const handleImportComplete = useCallback((importedTransactions: unknown[]) => {
+		console.log('Imported transactions:', importedTransactions)
+		// Note: Don't close modal here - let ImportWizard show success state
+		// The modal will close when user clicks "Done" in the success screen
 	}, [])
 
 	const formatCurrency = (amount: number) => {
@@ -292,9 +304,14 @@ export function TransactionsScreen() {
 								{filteredTransactions.length} transactions
 							</p>
 						</div>
-						<Button onClick={handleAddTransaction} data-testid="add-transaction-btn">
-							+ Add Transaction
-						</Button>
+						<div className="flex gap-2">
+							<Button variant="outline" onClick={handleImport} data-testid="import-transactions-btn">
+								Import
+							</Button>
+							<Button onClick={handleAddTransaction} data-testid="add-transaction-btn">
+								+ Add Transaction
+							</Button>
+						</div>
 					</div>
 
 					{/* Summary */}
@@ -412,6 +429,14 @@ export function TransactionsScreen() {
 				onClose={() => setIsModalOpen(false)}
 				onSave={handleSaveTransaction}
 				transaction={selectedTransaction}
+				categoryOptions={categoryOptions}
+			/>
+
+			{/* Import Wizard Modal */}
+			<ImportWizard
+				isOpen={isImportModalOpen}
+				onClose={() => setIsImportModalOpen(false)}
+				onImport={handleImportComplete}
 				categoryOptions={categoryOptions}
 			/>
 

@@ -1,0 +1,511 @@
+import { useState, useCallback, useRef } from 'react'
+import { Modal } from '@main/components/ui/Modal'
+import { Button } from '@main/components/ui/Button'
+import { Select } from '@main/components/ui/Select'
+
+interface ParsedTransaction {
+	id: string
+	date: string
+	description: string
+	amount: number
+	type: 'income' | 'expense'
+	categoryId?: string
+	isDuplicate?: boolean
+	duplicateReason?: string
+	isSelected: boolean
+}
+
+interface ImportWizardProps {
+	isOpen: boolean
+	onClose: () => void
+	onImport: (transactions: ParsedTransaction[]) => void
+	categoryOptions: Array<{ value: string; label: string }>
+}
+
+type Step = 'upload' | 'categorize' | 'success'
+
+const BANK_FORMAT_OPTIONS = [
+	{ value: 'auto', label: 'Auto Detect' },
+	{ value: 'nubank', label: 'Nubank' },
+	{ value: 'inter', label: 'Banco Inter' },
+	{ value: 'itau', label: 'Itau' },
+	{ value: 'custom', label: 'Personalizado' },
+]
+
+export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: ImportWizardProps) {
+	const [step, setStep] = useState<Step>('upload')
+	const [bankFormat, setBankFormat] = useState('auto')
+	const [file, setFile] = useState<File | null>(null)
+	const [parsedTransactions, setParsedTransactions] = useState<ParsedTransaction[]>([])
+	const [isLoading, setIsLoading] = useState(false)
+	const [error, setError] = useState<string | null>(null)
+	const [ignoreDuplicates, setIgnoreDuplicates] = useState(false)
+	const fileInputRef = useRef<HTMLInputElement>(null)
+
+	const resetState = useCallback(() => {
+		setStep('upload')
+		setBankFormat('auto')
+		setFile(null)
+		setParsedTransactions([])
+		setIsLoading(false)
+		setError(null)
+		setIgnoreDuplicates(false)
+	}, [])
+
+	const handleClose = useCallback(() => {
+		resetState()
+		onClose()
+	}, [onClose, resetState])
+
+	const parseCSV = useCallback((content: string): ParsedTransaction[] => {
+		const lines = content.trim().split('\n')
+		if (lines.length < 2) return []
+
+		const headers = lines[0].split(',').map(h => h.trim().toLowerCase())
+		const dateIdx = headers.findIndex(h => h.includes('data') || h.includes('date'))
+		const descIdx = headers.findIndex(h => h.includes('descri') || h.includes('description'))
+		const amountIdx = headers.findIndex(h => h.includes('valor') || h.includes('amount') || h.includes('value'))
+
+		if (dateIdx === -1 || descIdx === -1 || amountIdx === -1) {
+			throw new Error('Could not detect columns. Please use custom format.')
+		}
+
+		const transactions: ParsedTransaction[] = []
+		const seen = new Set<string>()
+
+		for (let i = 1; i < lines.length; i++) {
+			const values = lines[i].split(',').map(v => v.trim())
+			if (values.length < 3) continue
+
+			const date = values[dateIdx]
+			const description = values[descIdx]
+			const amountStr = values[amountIdx].replace(/[^\d.,\-]/g, '').replace(',', '.')
+			const amount = parseFloat(amountStr)
+
+			if (isNaN(amount)) continue
+
+			const key = `${date}-${description}-${amount}`
+			const isDuplicate = seen.has(key)
+			seen.add(key)
+
+			transactions.push({
+				id: `import-${i}-${Date.now()}`,
+				date,
+				description,
+				amount: Math.abs(amount),
+				type: amount < 0 ? 'expense' : 'income',
+				isDuplicate,
+				duplicateReason: isDuplicate ? 'Duplicate in file' : undefined,
+				isSelected: !isDuplicate,
+			})
+		}
+
+		return transactions
+	}, [])
+
+	const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+		const selectedFile = e.target.files?.[0]
+		if (!selectedFile) return
+
+		setError(null)
+
+		// Validate file type
+		const validTypes = ['text/csv', 'application/vnd.ms-excel', 'text/plain']
+		const validExtensions = ['.csv', '.ofx']
+		const hasValidExtension = validExtensions.some(ext => selectedFile.name.toLowerCase().endsWith(ext))
+
+		if (!validTypes.includes(selectedFile.type) && !hasValidExtension) {
+			setError('Invalid file type. Please upload a CSV or OFX file.')
+			return
+		}
+
+		setFile(selectedFile)
+		setIsLoading(true)
+
+		try {
+			const content = await selectedFile.text()
+			const transactions = parseCSV(content)
+
+			if (transactions.length === 0) {
+				setError('No transactions found in file. Please check the format.')
+				setIsLoading(false)
+				return
+			}
+
+			setParsedTransactions(transactions)
+		} catch (err) {
+			setError(err instanceof Error ? err.message : 'Failed to parse file')
+		} finally {
+			setIsLoading(false)
+		}
+	}, [parseCSV])
+
+	const handleBrowseFiles = useCallback(() => {
+		fileInputRef.current?.click()
+	}, [])
+
+	const handleDrop = useCallback((e: React.DragEvent) => {
+		e.preventDefault()
+		const droppedFile = e.dataTransfer.files[0]
+		if (droppedFile && fileInputRef.current) {
+			const dt = new DataTransfer()
+			dt.items.add(droppedFile)
+			fileInputRef.current.files = dt.files
+			fileInputRef.current.dispatchEvent(new Event('change', { bubbles: true }))
+		}
+	}, [])
+
+	const handleDragOver = useCallback((e: React.DragEvent) => {
+		e.preventDefault()
+	}, [])
+
+	const handleRowSelection = useCallback((id: string) => {
+		setParsedTransactions(prev =>
+			prev.map(t => (t.id === id ? { ...t, isSelected: !t.isSelected } : t))
+		)
+	}, [])
+
+	const handleCategoryChange = useCallback((id: string, categoryId: string) => {
+		setParsedTransactions(prev =>
+			prev.map(t => (t.id === id ? { ...t, categoryId } : t))
+		)
+	}, [])
+
+	const handleNext = useCallback(() => {
+		if (step === 'upload') {
+			setStep('categorize')
+		}
+	}, [step])
+
+	const handleBack = useCallback(() => {
+		if (step === 'categorize') {
+			setStep('upload')
+		}
+	}, [step])
+
+	const handleImport = useCallback(() => {
+		const transactionsToImport = parsedTransactions.filter(t => {
+			if (!t.isSelected) return false
+			if (ignoreDuplicates && t.isDuplicate) return false
+			return true
+		})
+
+		onImport(transactionsToImport)
+		setStep('success')
+	}, [parsedTransactions, ignoreDuplicates, onImport])
+
+	const selectedCount = parsedTransactions.filter(t => t.isSelected && (!ignoreDuplicates || !t.isDuplicate)).length
+
+	const formatCurrency = (amount: number, type: 'income' | 'expense') => {
+		const formatted = new Intl.NumberFormat('pt-BR', {
+			style: 'currency',
+			currency: 'BRL',
+		}).format(amount)
+		return type === 'expense' ? `-${formatted}` : `+${formatted}`
+	}
+
+	return (
+		<Modal
+			isOpen={isOpen}
+			onClose={handleClose}
+			title={step === 'success' ? 'Import Complete' : 'Import Transactions'}
+			size="lg"
+		>
+			<div data-testid="import-modal-title" className="sr-only">
+				{step === 'success' ? 'Import Complete' : 'Importar Transações'}
+			</div>
+
+			{/* Step Indicator */}
+			<div data-testid="import-step-indicator" className="flex items-center justify-center gap-4 mb-6">
+				<div
+					data-testid="import-step-1"
+					className={`flex items-center gap-2 ${step === 'upload' ? 'text-[var(--color-primary)]' : 'text-[var(--color-neutral-500)]'}`}
+				>
+					<div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'upload' ? 'bg-[var(--color-primary)] text-white' : 'bg-[var(--color-neutral-200)]'}`}>
+						1
+					</div>
+					<span className="font-medium">Upload</span>
+				</div>
+				<div className="w-12 h-0.5 bg-[var(--color-neutral-200)]" />
+				<div
+					data-testid="import-step-2"
+					className={`flex items-center gap-2 ${step === 'categorize' ? 'text-[var(--color-primary)]' : 'text-[var(--color-neutral-500)]'}`}
+				>
+					<div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'categorize' ? 'bg-[var(--color-primary)] text-white' : 'bg-[var(--color-neutral-200)]'}`}>
+						2
+					</div>
+					<span className="font-medium">Categorize</span>
+				</div>
+			</div>
+
+			{/* Step Content */}
+			{step === 'upload' && (
+				<div data-testid="modal-body">
+					{/* Bank Format Selector */}
+					<div className="mb-4">
+						<label className="block text-sm font-medium text-[var(--color-text)] mb-1">
+							Bank Format
+						</label>
+						<div data-testid="bank-format-selector">
+							<Select
+								options={BANK_FORMAT_OPTIONS}
+								value={bankFormat}
+								onChange={setBankFormat}
+								placeholder="Select bank format"
+							/>
+						</div>
+					</div>
+
+					{/* File Drop Zone */}
+					<div
+						data-testid="file-drop-zone"
+						className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+							file ? 'border-[var(--color-primary)] bg-[var(--color-primary-50)]' : 'border-[var(--color-neutral-300)] hover:border-[var(--color-primary)]'
+						}`}
+						onDrop={handleDrop}
+						onDragOver={handleDragOver}
+					>
+						<input
+							ref={fileInputRef}
+							type="file"
+							accept=".csv,.ofx"
+							onChange={handleFileSelect}
+							className="hidden"
+						/>
+
+						{isLoading ? (
+							<div data-testid="upload-progress" className="flex flex-col items-center gap-2">
+								<div className="w-8 h-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
+								<p className="text-[var(--color-neutral-600)]">Processing file...</p>
+							</div>
+						) : file ? (
+							<div className="flex flex-col items-center gap-2">
+								<div className="text-4xl">📄</div>
+								<p className="font-medium text-[var(--color-text)]">{file.name}</p>
+								<Button variant="outline" size="sm" onClick={() => setFile(null)}>
+									Remove
+								</Button>
+							</div>
+						) : (
+							<div className="flex flex-col items-center gap-2">
+								<div className="text-4xl">📂</div>
+								<p className="text-[var(--color-neutral-600)]">
+									Drag and drop your file here, or
+								</p>
+								<Button
+									data-testid="browse-files-btn"
+									variant="outline"
+									onClick={handleBrowseFiles}
+								>
+									Browse Files
+								</Button>
+								<p className="text-sm text-[var(--color-neutral-500)]">
+									Supports CSV and OFX formats
+								</p>
+							</div>
+						)}
+					</div>
+
+					{/* Error Message */}
+					{error && (
+						<div data-testid="file-error-message" className="mt-4 p-3 bg-[var(--color-error-50)] border border-[var(--color-error-200)] rounded-lg text-[var(--color-error)]">
+							{error}
+						</div>
+					)}
+
+					{/* Preview Table */}
+					{parsedTransactions.length > 0 && (
+						<div className="mt-6">
+							<div className="flex items-center justify-between mb-4">
+								<h3 className="font-semibold text-[var(--color-text)]">
+									Preview ({parsedTransactions.length} transactions)
+								</h3>
+								<label className="flex items-center gap-2">
+									<input
+										type="checkbox"
+										checked={ignoreDuplicates}
+										onChange={e => setIgnoreDuplicates(e.target.checked)}
+										data-testid="ignore-duplicates-checkbox"
+										className="w-4 h-4 rounded border-[var(--color-neutral-300)]"
+									/>
+									<span className="text-sm text-[var(--color-neutral-600)]">
+										Ignore duplicates
+									</span>
+								</label>
+							</div>
+
+							<div data-testid="import-preview-table" className="border border-[var(--color-neutral-200)] rounded-lg overflow-hidden max-h-64 overflow-y-auto">
+								<table className="w-full">
+									<thead className="bg-[var(--color-neutral-50)] sticky top-0">
+										<tr>
+											<th className="p-2 text-left text-sm font-medium text-[var(--color-neutral-600)]">
+												<input
+													type="checkbox"
+													checked={parsedTransactions.every(t => t.isSelected)}
+													onChange={() => {
+														const allSelected = parsedTransactions.every(t => t.isSelected)
+														setParsedTransactions(prev =>
+															prev.map(t => ({ ...t, isSelected: !allSelected }))
+														)
+													}}
+													className="w-4 h-4 rounded border-[var(--color-neutral-300)]"
+												/>
+											</th>
+											<th className="p-2 text-left text-sm font-medium text-[var(--color-neutral-600)]">Date</th>
+											<th className="p-2 text-left text-sm font-medium text-[var(--color-neutral-600)]">Description</th>
+											<th className="p-2 text-right text-sm font-medium text-[var(--color-neutral-600)]">Amount</th>
+										</tr>
+									</thead>
+									<tbody>
+										{parsedTransactions.map(transaction => (
+											<tr
+												key={transaction.id}
+												data-testid="import-preview-row"
+												className={`border-t border-[var(--color-neutral-200)] ${
+													transaction.isDuplicate ? 'bg-[var(--color-warning-50)]' : ''
+												}`}
+											>
+												<td className="p-2">
+													<input
+														type="checkbox"
+														checked={transaction.isSelected}
+														onChange={() => handleRowSelection(transaction.id)}
+														data-testid="import-row-checkbox"
+														className="w-4 h-4 rounded border-[var(--color-neutral-300)]"
+													/>
+												</td>
+												<td className="p-2 text-sm text-[var(--color-text)]">
+													{transaction.date}
+												</td>
+												<td className="p-2 text-sm text-[var(--color-text)]">
+													<div className="flex items-center gap-2">
+														{transaction.isDuplicate && (
+															<span
+																data-testid="duplicate-warning-icon"
+																title={transaction.duplicateReason}
+																className="text-[var(--color-warning)]"
+															>
+																⚠️
+															</span>
+														)}
+														{transaction.description}
+													</div>
+												</td>
+												<td className={`p-2 text-sm text-right font-medium ${
+													transaction.type === 'expense' ? 'text-[var(--color-error)]' : 'text-[var(--color-success)]'
+												}`}>
+													{formatCurrency(transaction.amount, transaction.type)}
+												</td>
+											</tr>
+										))}
+									</tbody>
+								</table>
+							</div>
+
+							<div data-testid="import-selected-count" className="mt-2 text-sm text-[var(--color-neutral-600)]">
+								{selectedCount} transactions selected for import
+							</div>
+						</div>
+					)}
+				</div>
+			)}
+
+			{step === 'categorize' && (
+				<div data-testid="categorize-transactions-form">
+					<p className="mb-4 text-[var(--color-neutral-600)]">
+						Assign categories to your transactions:
+					</p>
+
+					<div className="border border-[var(--color-neutral-200)] rounded-lg overflow-hidden max-h-96 overflow-y-auto">
+						<table className="w-full">
+							<thead className="bg-[var(--color-neutral-50)] sticky top-0">
+								<tr>
+									<th className="p-2 text-left text-sm font-medium text-[var(--color-neutral-600)]">Description</th>
+									<th className="p-2 text-left text-sm font-medium text-[var(--color-neutral-600)]">Amount</th>
+									<th className="p-2 text-left text-sm font-medium text-[var(--color-neutral-600)]">Category</th>
+								</tr>
+							</thead>
+							<tbody>
+								{parsedTransactions
+									.filter(t => t.isSelected && (!ignoreDuplicates || !t.isDuplicate))
+									.map(transaction => (
+										<tr
+											key={transaction.id}
+											className="border-t border-[var(--color-neutral-200)]"
+										>
+											<td className="p-2 text-sm text-[var(--color-text)]">
+												{transaction.description}
+											</td>
+											<td className={`p-2 text-sm font-medium ${
+												transaction.type === 'expense' ? 'text-[var(--color-error)]' : 'text-[var(--color-success)]'
+											}`}>
+												{formatCurrency(transaction.amount, transaction.type)}
+											</td>
+											<td className="p-2" data-testid="category-selector">
+												<Select
+													options={categoryOptions}
+													value={transaction.categoryId || ''}
+													onChange={value => handleCategoryChange(transaction.id, value)}
+													placeholder="Select category"
+												/>
+											</td>
+										</tr>
+									))}
+							</tbody>
+						</table>
+					</div>
+				</div>
+			)}
+
+			{step === 'success' && (
+				<div data-testid="import-success" className="text-center py-8">
+					<div className="text-6xl mb-4">🎉</div>
+					<h3 className="text-xl font-bold text-[var(--color-text)] mb-2">
+						Import Complete!
+					</h3>
+					<p className="text-[var(--color-neutral-600)]">
+						Successfully imported {selectedCount} transactions.
+					</p>
+				</div>
+			)}
+
+			{/* Footer */}
+			<div className="flex justify-between mt-6 pt-4 border-t border-[var(--color-neutral-200)]">
+				{step === 'success' ? (
+					<div className="w-full flex justify-center">
+						<Button onClick={handleClose}>
+							Done
+						</Button>
+					</div>
+				) : (
+					<>
+						<Button
+							variant="outline"
+							onClick={step === 'upload' ? handleClose : handleBack}
+							data-testid="import-cancel-btn"
+						>
+							{step === 'upload' ? 'Cancel' : 'Back'}
+						</Button>
+
+						{step === 'upload' ? (
+							<Button
+								onClick={handleNext}
+								disabled={parsedTransactions.length === 0}
+								data-testid="import-next-btn"
+							>
+								Next
+							</Button>
+						) : (
+							<Button
+								onClick={handleImport}
+								data-testid="import-confirm-btn"
+							>
+								Import {selectedCount} Transactions
+							</Button>
+						)}
+					</>
+				)}
+			</div>
+		</Modal>
+	)
+}
