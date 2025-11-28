@@ -6,6 +6,7 @@ import { TransactionsScreen } from '@main/features/transactions'
 import { RulesScreen } from '@main/features/rules'
 import { GoalsScreen } from '@main/features/goals'
 import { DashboardScreen } from '@main/features/dashboard'
+import { GroupsScreen, GroupDetailScreen } from '@main/features/groups'
 
 function ForgotPasswordPlaceholder() {
 	return (
@@ -65,6 +66,8 @@ function App() {
 				<Route path="/transactions" element={<TransactionsScreen />} />
 				<Route path="/rules" element={<RulesScreen />} />
 				<Route path="/goals" element={<GoalsScreen />} />
+				<Route path="/groups" element={<GroupsScreen />} />
+				<Route path="/groups/:groupId" element={<GroupDetailScreen />} />
 				<Route path="/" element={<Navigate to="/login" replace />} />
 				<Route path="*" element={<Navigate to="/login" replace />} />
 			</Routes>
