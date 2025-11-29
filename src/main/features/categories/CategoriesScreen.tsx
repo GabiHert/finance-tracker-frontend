@@ -197,9 +197,19 @@ export function CategoriesScreen() {
 					Deseja excluir esta categoria?
 				</p>
 				{categoryToDelete && (
-					<p className="text-sm text-[var(--color-text-secondary)] mt-2">
-						A categoria <strong>{categoryToDelete.name}</strong> sera removida permanentemente.
-					</p>
+					<>
+						<p className="text-sm text-[var(--color-text-secondary)] mt-2">
+							A categoria <strong>{categoryToDelete.name}</strong> sera removida permanentemente.
+						</p>
+						{categoryToDelete.transactionCount && categoryToDelete.transactionCount > 0 && (
+							<p
+								className="text-sm text-[var(--color-warning)] mt-2 p-2 bg-amber-50 rounded"
+								data-testid="transaction-warning"
+							>
+								{categoryToDelete.transactionCount} transacoes ficarao sem categoria
+							</p>
+						)}
+					</>
 				)}
 			</Modal>
 		</div>

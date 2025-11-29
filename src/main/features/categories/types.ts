@@ -8,6 +8,7 @@ export interface Category {
 	type: CategoryType
 	description?: string
 	isDefault?: boolean
+	transactionCount?: number
 	createdAt: string
 	updatedAt: string
 }
