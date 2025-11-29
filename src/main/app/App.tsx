@@ -26,6 +26,12 @@ function ForgotPasswordPlaceholder() {
 }
 
 function AuthenticatedRoute({ children }: { children: React.ReactNode }) {
+	const token = localStorage.getItem('access_token')
+
+	if (!token) {
+		return <Navigate to="/login" replace />
+	}
+
 	return (
 		<AppLayout>
 			{children}

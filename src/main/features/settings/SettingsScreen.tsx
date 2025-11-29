@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '@main/components/ui/Button'
 import { Modal } from '@main/components/ui/Modal'
+import { logout } from '@main/features/auth'
 import { ProfileSection } from './components/ProfileSection'
 import { PreferencesSection } from './components/PreferencesSection'
 import { NotificationsSection } from './components/NotificationsSection'
@@ -12,6 +14,7 @@ import { mockUserProfile, mockUserPreferences, mockNotificationSettings } from '
 import type { UserProfile, UserPreferences, NotificationSettings } from './types'
 
 export function SettingsScreen() {
+	const navigate = useNavigate()
 	const [profile, setProfile] = useState<UserProfile>(mockUserProfile)
 	const [preferences, setPreferences] = useState<UserPreferences>(mockUserPreferences)
 	const [notifications, setNotifications] = useState<NotificationSettings>(mockNotificationSettings)
@@ -47,6 +50,20 @@ export function SettingsScreen() {
 		setNotifications({ ...notifications, [key]: value })
 	}
 
+	const handleLogout = async () => {
+		const refreshToken = localStorage.getItem('refresh_token')
+		if (refreshToken) {
+			try {
+				await logout(refreshToken)
+			} catch {
+				// Ignore logout API errors, proceed with local cleanup
+			}
+		}
+		localStorage.removeItem('access_token')
+		localStorage.removeItem('refresh_token')
+		navigate('/login')
+	}
+
 	return (
 		<div data-testid="settings-screen" className="min-h-screen p-6 bg-[var(--color-background)]">
 			<div className="max-w-2xl mx-auto">
@@ -73,6 +90,7 @@ export function SettingsScreen() {
 					<DataSection
 						onChangePassword={() => setIsChangePasswordOpen(true)}
 						onDeleteAccount={() => setIsDeleteAccountOpen(true)}
+						onLogout={handleLogout}
 					/>
 				</div>
 			</div>
