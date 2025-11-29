@@ -5,6 +5,7 @@ import { Modal } from '@main/components/ui/Modal'
 import { FilterBar } from './components/FilterBar'
 import { TransactionRow } from './components/TransactionRow'
 import { ImportWizard } from './components/ImportWizard'
+import { BulkCategorizeModal } from './components/BulkCategorizeModal'
 import { TransactionModal } from './TransactionModal'
 import { mockTransactions } from './mock-data'
 import type { Transaction, TransactionFilters, TransactionFormData } from './types'
@@ -28,6 +29,7 @@ export function TransactionsScreen() {
 	const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
 	const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null)
 	const [showBulkDeleteConfirmation, setShowBulkDeleteConfirmation] = useState(false)
+	const [showBulkCategorizeModal, setShowBulkCategorizeModal] = useState(false)
 	const [isImportModalOpen, setIsImportModalOpen] = useState(false)
 
 	// Filter transactions
@@ -94,6 +96,13 @@ export function TransactionsScreen() {
 		return uniqueCategories
 	}, [transactions])
 
+	// Selected transaction descriptions for bulk categorize preview
+	const selectedTransactionDescriptions = useMemo(() => {
+		return transactions
+			.filter(t => selectedIds.has(t.id))
+			.map(t => t.description)
+	}, [transactions, selectedIds])
+
 	// Selection handlers
 	const handleSelectAll = useCallback(() => {
 		if (selectedIds.size === filteredTransactions.length) {
@@ -144,6 +153,17 @@ export function TransactionsScreen() {
 	const handleBulkDelete = useCallback(() => {
 		setShowBulkDeleteConfirmation(true)
 	}, [])
+
+	const handleBulkCategorize = useCallback(() => {
+		setShowBulkCategorizeModal(true)
+	}, [])
+
+	const handleBulkCategorizeApply = useCallback((categoryId: string) => {
+		console.log('Bulk categorize transactions:', Array.from(selectedIds), 'to category:', categoryId)
+		// In a real app, this would call the API: POST /transactions/bulk-categorize
+		setShowBulkCategorizeModal(false)
+		setSelectedIds(new Set())
+	}, [selectedIds])
 
 	const confirmBulkDelete = useCallback(() => {
 		console.log('Delete transactions:', Array.from(selectedIds))
@@ -362,7 +382,7 @@ export function TransactionsScreen() {
 							</Button>
 						</div>
 						<div className="flex gap-2">
-							<Button variant="outline" size="sm" data-testid="bulk-edit-category-btn">
+							<Button variant="outline" size="sm" onClick={handleBulkCategorize} data-testid="bulk-edit-category-btn">
 								Change Category
 							</Button>
 							<Button variant="outline" size="sm" data-testid="bulk-export-btn">
@@ -483,6 +503,16 @@ export function TransactionsScreen() {
 					</div>
 				</Modal>
 			)}
+
+			{/* Bulk Categorize Modal */}
+			<BulkCategorizeModal
+				isOpen={showBulkCategorizeModal}
+				onClose={() => setShowBulkCategorizeModal(false)}
+				onApply={handleBulkCategorizeApply}
+				selectedCount={selectedIds.size}
+				categoryOptions={categoryOptions}
+				selectedTransactionDescriptions={selectedTransactionDescriptions}
+			/>
 		</div>
 	)
 }
