@@ -108,9 +108,10 @@ export function LoginForm({ onSubmit }: LoginFormProps) {
 			/>
 
 			<div className="flex items-center justify-between mt-4">
-				<label className="flex items-center gap-2 cursor-pointer">
+				<label className="flex items-center gap-2 cursor-pointer" data-testid="remember-me-label">
 					<input
 						type="checkbox"
+						data-testid="remember-me-checkbox"
 						checked={formData.rememberMe}
 						onChange={(e) => setFormData({ ...formData, rememberMe: e.target.checked })}
 						className="w-4 h-4 rounded border-[var(--color-border)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
