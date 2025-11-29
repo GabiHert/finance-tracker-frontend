@@ -1,5 +1,5 @@
 // Components
-export { LoginForm, RegisterForm, LoginScreen, RegisterScreen } from './components'
+export { LoginForm, RegisterForm, LoginScreen, RegisterScreen, ForgotPasswordScreen, ResetPasswordScreen } from './components'
 
 // API
 export { login, register, refreshToken, logout, forgotPassword, resetPassword, deleteAccount } from './api/auth'

@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { LoginScreen, RegisterScreen } from '@main/features/auth'
+import { LoginScreen, RegisterScreen, ForgotPasswordScreen, ResetPasswordScreen } from '@main/features/auth'
 import { TestComponentsScreen } from '@main/features/test-components'
 import { CategoriesScreen } from '@main/features/categories'
 import { TransactionsScreen } from '@main/features/transactions'
@@ -9,21 +9,6 @@ import { DashboardScreen } from '@main/features/dashboard'
 import { GroupsScreen, GroupDetailScreen } from '@main/features/groups'
 import { SettingsScreen } from '@main/features/settings'
 import { AppLayout, ToastProvider } from '@main/components/layout'
-
-function ForgotPasswordPlaceholder() {
-	return (
-		<div className="min-h-screen flex items-center justify-center p-4 bg-[var(--color-background)]">
-			<div className="w-full max-w-md text-center">
-				<h1 className="text-2xl font-bold text-[var(--color-text)] mb-4">
-					Esqueceu a senha?
-				</h1>
-				<p className="text-[var(--color-text-secondary)]">
-					Esta página será implementada em breve.
-				</p>
-			</div>
-		</div>
-	)
-}
 
 function AuthenticatedRoute({ children }: { children: React.ReactNode }) {
 	const token = localStorage.getItem('access_token')
@@ -47,7 +32,8 @@ function App() {
 					{/* Public routes */}
 					<Route path="/login" element={<LoginScreen />} />
 					<Route path="/register" element={<RegisterScreen />} />
-					<Route path="/forgot-password" element={<ForgotPasswordPlaceholder />} />
+					<Route path="/forgot-password" element={<ForgotPasswordScreen />} />
+					<Route path="/reset-password" element={<ResetPasswordScreen />} />
 
 					{/* Authenticated routes with AppLayout */}
 					<Route path="/dashboard" element={<AuthenticatedRoute><DashboardScreen /></AuthenticatedRoute>} />
