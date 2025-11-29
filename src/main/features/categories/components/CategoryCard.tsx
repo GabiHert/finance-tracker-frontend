@@ -5,11 +5,37 @@ import type { Category } from '../types'
 interface CategoryCardProps {
 	category: Category
 	onClick?: () => void
+	onDelete?: (category: Category) => void
 }
 
-export function CategoryCard({ category, onClick }: CategoryCardProps) {
+function TrashIcon() {
+	return (
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="2"
+			strokeLinecap="round"
+			strokeLinejoin="round"
+			className="w-4 h-4"
+		>
+			<polyline points="3,6 5,6 21,6" />
+			<path d="M19,6v14a2,2 0 0,1-2,2H7a2,2 0 0,1-2,-2V6m3,0V4a2,2 0 0,1,2,-2h4a2,2 0 0,1,2,2v2" />
+			<line x1="10" y1="11" x2="10" y2="17" />
+			<line x1="14" y1="11" x2="14" y2="17" />
+		</svg>
+	)
+}
+
+export function CategoryCard({ category, onClick, onDelete }: CategoryCardProps) {
 	const iconDef = CATEGORY_ICONS.find(i => i.name === category.icon)
 	const IconPath = iconDef?.path || ''
+
+	const handleDelete = (e: React.MouseEvent) => {
+		e.stopPropagation()
+		onDelete?.(category)
+	}
 
 	return (
 		<Card
@@ -17,7 +43,7 @@ export function CategoryCard({ category, onClick }: CategoryCardProps) {
 			onClick={onClick}
 			data-testid="category-card"
 			padding="md"
-			className="transition-all hover:shadow-lg"
+			className="transition-all hover:shadow-lg group relative"
 		>
 			<div className="flex items-center gap-3">
 				<div
@@ -52,7 +78,7 @@ export function CategoryCard({ category, onClick }: CategoryCardProps) {
 						</p>
 					)}
 				</div>
-				<div className="flex items-center">
+				<div className="flex items-center gap-2">
 					<span
 						className={`
 							text-xs px-2 py-1 rounded-full
@@ -64,6 +90,23 @@ export function CategoryCard({ category, onClick }: CategoryCardProps) {
 					>
 						{category.type}
 					</span>
+					{onDelete && (
+						<button
+							data-testid="delete-category-btn"
+							onClick={handleDelete}
+							className="
+								opacity-0 group-hover:opacity-100
+								p-2 rounded-full
+								text-[var(--color-text-secondary)]
+								hover:text-[var(--color-error)] hover:bg-red-50
+								transition-all duration-200
+								focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-red-500
+							"
+							aria-label={`Excluir categoria ${category.name}`}
+						>
+							<TrashIcon />
+						</button>
+					)}
 				</div>
 			</div>
 		</Card>

@@ -3,6 +3,8 @@ import { useSearchParams } from 'react-router-dom'
 import { Button } from '@main/components/ui/Button'
 import { Input } from '@main/components/ui/Input'
 import { Select } from '@main/components/ui/Select'
+import { Modal } from '@main/components/ui/Modal'
+import { useToast } from '@main/components/layout/Toast'
 import { CategoryCard } from './components/CategoryCard'
 import { CategoryModal } from './CategoryModal'
 import { mockCategories } from './mock-data'
@@ -17,12 +19,15 @@ const typeFilterOptions = [
 export function CategoriesScreen() {
 	const [searchParams] = useSearchParams()
 	const isEmpty = searchParams.get('empty') === 'true'
+	const { showToast } = useToast()
 
-	const [categories] = useState<Category[]>(isEmpty ? [] : mockCategories)
+	const [categories, setCategories] = useState<Category[]>(isEmpty ? [] : mockCategories)
 	const [searchQuery, setSearchQuery] = useState('')
 	const [typeFilter, setTypeFilter] = useState<string>('all')
 	const [isModalOpen, setIsModalOpen] = useState(false)
 	const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
+	const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null)
+	const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
 
 	const filteredCategories = useMemo(() => {
 		return categories.filter(category => {
@@ -51,6 +56,24 @@ export function CategoriesScreen() {
 	const handleSaveCategory = (data: Partial<Category>) => {
 		console.log('Save category:', data)
 		handleCloseModal()
+	}
+
+	const handleDeleteClick = (category: Category) => {
+		setCategoryToDelete(category)
+		setIsDeleteModalOpen(true)
+	}
+
+	const handleCancelDelete = () => {
+		setIsDeleteModalOpen(false)
+		setCategoryToDelete(null)
+	}
+
+	const handleConfirmDelete = () => {
+		if (categoryToDelete) {
+			setCategories(prev => prev.filter(c => c.id !== categoryToDelete.id))
+			showToast('success', 'Categoria excluida')
+		}
+		handleCancelDelete()
 	}
 
 	return (
@@ -131,6 +154,7 @@ export function CategoriesScreen() {
 								key={category.id}
 								category={category}
 								onClick={() => handleEditCategory(category)}
+								onDelete={handleDeleteClick}
 							/>
 						))}
 					</div>
@@ -143,6 +167,41 @@ export function CategoriesScreen() {
 				onSave={handleSaveCategory}
 				category={selectedCategory}
 			/>
+
+			<Modal
+				isOpen={isDeleteModalOpen}
+				onClose={handleCancelDelete}
+				title="Excluir categoria"
+				size="sm"
+				data-testid="delete-category-modal"
+				footer={
+					<>
+						<Button
+							variant="secondary"
+							onClick={handleCancelDelete}
+							data-testid="cancel-delete-btn"
+						>
+							Cancelar
+						</Button>
+						<Button
+							variant="danger"
+							onClick={handleConfirmDelete}
+							data-testid="confirm-delete-btn"
+						>
+							Excluir
+						</Button>
+					</>
+				}
+			>
+				<p className="text-[var(--color-text)]" data-testid="delete-confirmation-text">
+					Deseja excluir esta categoria?
+				</p>
+				{categoryToDelete && (
+					<p className="text-sm text-[var(--color-text-secondary)] mt-2">
+						A categoria <strong>{categoryToDelete.name}</strong> sera removida permanentemente.
+					</p>
+				)}
+			</Modal>
 		</div>
 	)
 }
