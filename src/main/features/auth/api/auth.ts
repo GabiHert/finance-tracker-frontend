@@ -90,3 +90,20 @@ export async function resetPassword(token: string, newPassword: string): Promise
 		throw new Error('Token inválido ou expirado')
 	}
 }
+
+export async function deleteAccount(password: string): Promise<void> {
+	const accessToken = localStorage.getItem('access_token')
+	const response = await fetch(`${API_BASE}/users/me`, {
+		method: 'DELETE',
+		headers: {
+			'Content-Type': 'application/json',
+			'Authorization': `Bearer ${accessToken}`,
+		},
+		body: JSON.stringify({ password }),
+	})
+
+	if (!response.ok) {
+		const error = await response.json().catch(() => ({ message: 'Erro ao excluir conta' }))
+		throw new Error(error.message || 'Erro ao excluir conta')
+	}
+}

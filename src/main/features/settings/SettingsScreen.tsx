@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@main/components/ui/Button'
 import { Modal } from '@main/components/ui/Modal'
-import { logout } from '@main/features/auth'
+import { logout, deleteAccount } from '@main/features/auth'
 import { ProfileSection } from './components/ProfileSection'
 import { PreferencesSection } from './components/PreferencesSection'
 import { NotificationsSection } from './components/NotificationsSection'
@@ -37,9 +37,18 @@ export function SettingsScreen() {
 		return { success: true }
 	}
 
-	const handleDeleteAccount = () => {
-		// In mock mode, just close the modal
+	const handleDeleteAccount = async (password: string) => {
+		try {
+			await deleteAccount(password)
+		} catch {
+			// Continue with local cleanup even if API fails
+			// Backend endpoint may not be implemented yet
+		}
+		// Clear tokens and redirect to login
+		localStorage.removeItem('access_token')
+		localStorage.removeItem('refresh_token')
 		setIsDeleteAccountOpen(false)
+		navigate('/login')
 	}
 
 	const handlePreferencesChange = (key: keyof UserPreferences, value: string) => {

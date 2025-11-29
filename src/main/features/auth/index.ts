@@ -2,7 +2,7 @@
 export { LoginForm, RegisterForm, LoginScreen, RegisterScreen } from './components'
 
 // API
-export { login, register, refreshToken, logout, forgotPassword, resetPassword } from './api/auth'
+export { login, register, refreshToken, logout, forgotPassword, resetPassword, deleteAccount } from './api/auth'
 
 // Types
 export type {

@@ -6,7 +6,7 @@ import { Input } from '@main/components/ui/Input'
 interface DeleteAccountModalProps {
 	isOpen: boolean
 	onClose: () => void
-	onConfirm: () => void
+	onConfirm: (password: string) => void
 }
 
 function AlertIcon() {
@@ -44,7 +44,7 @@ export function DeleteAccountModal({ isOpen, onClose, onConfirm }: DeleteAccount
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault()
 		if (isValid) {
-			onConfirm()
+			onConfirm(password)
 		}
 	}
 
