@@ -3,6 +3,7 @@ import { Button } from '@main/components/ui/Button'
 interface DataSectionProps {
 	onChangePassword: () => void
 	onDeleteAccount: () => void
+	onDeleteAllTransactions: () => void
 	onLogout: () => void
 }
 
@@ -65,7 +66,7 @@ function LogoutIcon() {
 	)
 }
 
-export function DataSection({ onChangePassword, onDeleteAccount, onLogout }: DataSectionProps) {
+export function DataSection({ onChangePassword, onDeleteAccount, onDeleteAllTransactions, onLogout }: DataSectionProps) {
 	return (
 		<div
 			data-testid="data-section"
@@ -114,21 +115,31 @@ export function DataSection({ onChangePassword, onDeleteAccount, onLogout }: Dat
 					</Button>
 				</div>
 
-				<div className="pt-4">
+				<div className="pt-4" data-testid="danger-zone">
 					<p className="text-sm font-medium text-[var(--color-text)] mb-2">
 						Zona de perigo
 					</p>
 					<p className="text-xs text-[var(--color-text-secondary)] mb-4">
 						Acoes irreversiveis que afetam sua conta
 					</p>
-					<Button
-						data-testid="delete-account-btn"
-						variant="danger"
-						onClick={onDeleteAccount}
-					>
-						<TrashIcon />
-						<span className="ml-2">Excluir conta</span>
-					</Button>
+					<div className="flex flex-col gap-2">
+						<Button
+							data-testid="delete-all-transactions-btn"
+							variant="danger"
+							onClick={onDeleteAllTransactions}
+						>
+							<TrashIcon />
+							<span className="ml-2">Excluir todas as transacoes</span>
+						</Button>
+						<Button
+							data-testid="delete-account-btn"
+							variant="danger"
+							onClick={onDeleteAccount}
+						>
+							<TrashIcon />
+							<span className="ml-2">Excluir conta</span>
+						</Button>
+					</div>
 				</div>
 			</div>
 		</div>

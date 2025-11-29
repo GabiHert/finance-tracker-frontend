@@ -10,6 +10,7 @@ import { DataSection } from './components/DataSection'
 import { EditProfileModal } from './EditProfileModal'
 import { ChangePasswordModal } from './ChangePasswordModal'
 import { DeleteAccountModal } from './DeleteAccountModal'
+import { DeleteAllTransactionsModal } from './DeleteAllTransactionsModal'
 import { mockUserProfile, mockUserPreferences, mockNotificationSettings } from './mock-data'
 import type { UserProfile, UserPreferences, NotificationSettings } from './types'
 
@@ -22,6 +23,8 @@ export function SettingsScreen() {
 	const [isEditProfileOpen, setIsEditProfileOpen] = useState(false)
 	const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false)
 	const [isDeleteAccountOpen, setIsDeleteAccountOpen] = useState(false)
+	const [isDeleteAllTransactionsOpen, setIsDeleteAllTransactionsOpen] = useState(false)
+	const [transactionsDeleted, setTransactionsDeleted] = useState(false)
 
 	const handleSaveProfile = (name: string) => {
 		setProfile({ ...profile, name })
@@ -49,6 +52,14 @@ export function SettingsScreen() {
 		localStorage.removeItem('refresh_token')
 		setIsDeleteAccountOpen(false)
 		navigate('/login')
+	}
+
+	const handleDeleteAllTransactions = async (_password: string) => {
+		// In mock mode, just set state to show transactions deleted
+		setTransactionsDeleted(true)
+		setIsDeleteAllTransactionsOpen(false)
+		// Navigate to transactions to show empty state
+		navigate('/transactions?empty=true')
 	}
 
 	const handlePreferencesChange = (key: keyof UserPreferences, value: string) => {
@@ -99,6 +110,7 @@ export function SettingsScreen() {
 					<DataSection
 						onChangePassword={() => setIsChangePasswordOpen(true)}
 						onDeleteAccount={() => setIsDeleteAccountOpen(true)}
+						onDeleteAllTransactions={() => setIsDeleteAllTransactionsOpen(true)}
 						onLogout={handleLogout}
 					/>
 				</div>
@@ -121,6 +133,12 @@ export function SettingsScreen() {
 				isOpen={isDeleteAccountOpen}
 				onClose={() => setIsDeleteAccountOpen(false)}
 				onConfirm={handleDeleteAccount}
+			/>
+
+			<DeleteAllTransactionsModal
+				isOpen={isDeleteAllTransactionsOpen}
+				onClose={() => setIsDeleteAllTransactionsOpen(false)}
+				onConfirm={handleDeleteAllTransactions}
 			/>
 		</div>
 	)
