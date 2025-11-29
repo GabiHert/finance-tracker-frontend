@@ -2,6 +2,8 @@ import { useState, useCallback, useRef } from 'react'
 import { Modal } from '@main/components/ui/Modal'
 import { Button } from '@main/components/ui/Button'
 import { Select } from '@main/components/ui/Select'
+import { ColumnMappingUI, validateColumnMapping, extractCSVHeaders } from './ColumnMappingUI'
+import type { ColumnMapping, ColumnMappingField } from './ColumnMappingUI'
 
 interface ParsedTransaction {
 	id: string
@@ -42,6 +44,12 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 	const [ignoreDuplicates, setIgnoreDuplicates] = useState(false)
 	const fileInputRef = useRef<HTMLInputElement>(null)
 
+	// Column mapping state for custom format
+	const [csvHeaders, setCsvHeaders] = useState<string[]>([])
+	const [columnMapping, setColumnMapping] = useState<ColumnMapping>({})
+	const [mappingError, setMappingError] = useState<string | null>(null)
+	const [rawContent, setRawContent] = useState<string>('')
+
 	const resetState = useCallback(() => {
 		setStep('upload')
 		setBankFormat('auto')
@@ -50,6 +58,10 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 		setIsLoading(false)
 		setError(null)
 		setIgnoreDuplicates(false)
+		setCsvHeaders([])
+		setColumnMapping({})
+		setMappingError(null)
+		setRawContent('')
 	}, [])
 
 	const handleClose = useCallback(() => {
@@ -57,14 +69,27 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 		onClose()
 	}, [onClose, resetState])
 
-	const parseCSV = useCallback((content: string): ParsedTransaction[] => {
+	const parseCSV = useCallback((content: string, customMapping?: ColumnMapping): ParsedTransaction[] => {
 		const lines = content.trim().split('\n')
 		if (lines.length < 2) return []
 
-		const headers = lines[0].split(',').map(h => h.trim().toLowerCase())
-		const dateIdx = headers.findIndex(h => h.includes('data') || h.includes('date'))
-		const descIdx = headers.findIndex(h => h.includes('descri') || h.includes('description'))
-		const amountIdx = headers.findIndex(h => h.includes('valor') || h.includes('amount') || h.includes('value'))
+		const headers = lines[0].split(',').map(h => h.trim())
+		const headersLower = headers.map(h => h.toLowerCase())
+		let dateIdx: number
+		let descIdx: number
+		let amountIdx: number
+
+		if (customMapping) {
+			// Use custom column mapping
+			dateIdx = headers.findIndex(h => customMapping[h] === 'date')
+			descIdx = headers.findIndex(h => customMapping[h] === 'description')
+			amountIdx = headers.findIndex(h => customMapping[h] === 'amount')
+		} else {
+			// Auto-detect columns
+			dateIdx = headersLower.findIndex(h => h.includes('data') || h.includes('date'))
+			descIdx = headersLower.findIndex(h => h.includes('descri') || h.includes('description'))
+			amountIdx = headersLower.findIndex(h => h.includes('valor') || h.includes('amount') || h.includes('value'))
+		}
 
 		if (dateIdx === -1 || descIdx === -1 || amountIdx === -1) {
 			throw new Error('Could not detect columns. Please use custom format.')
@@ -108,6 +133,7 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 		if (!selectedFile) return
 
 		setError(null)
+		setMappingError(null)
 
 		// Validate file type
 		const validTypes = ['text/csv', 'application/vnd.ms-excel', 'text/plain']
@@ -124,6 +150,29 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 
 		try {
 			const content = await selectedFile.text()
+			setRawContent(content)
+
+			// For custom format, extract headers and wait for user mapping
+			if (bankFormat === 'custom') {
+				const headers = extractCSVHeaders(content)
+				if (headers.length === 0) {
+					setError('Could not extract headers from CSV file.')
+					setIsLoading(false)
+					return
+				}
+				setCsvHeaders(headers)
+				// Initialize empty mapping for each header
+				const initialMapping: ColumnMapping = {}
+				headers.forEach(h => {
+					initialMapping[h] = ''
+				})
+				setColumnMapping(initialMapping)
+				setParsedTransactions([])
+				setIsLoading(false)
+				return
+			}
+
+			// For other formats, auto-detect columns
 			const transactions = parseCSV(content)
 
 			if (transactions.length === 0) {
@@ -138,11 +187,41 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 		} finally {
 			setIsLoading(false)
 		}
-	}, [parseCSV])
+	}, [parseCSV, bankFormat])
 
 	const handleBrowseFiles = useCallback(() => {
 		fileInputRef.current?.click()
 	}, [])
+
+	const handleColumnMappingChange = useCallback((newMapping: ColumnMapping) => {
+		setColumnMapping(newMapping)
+		setMappingError(null)
+
+		// Validate the mapping
+		const validationError = validateColumnMapping(newMapping)
+		if (validationError) {
+			setMappingError(validationError)
+			setParsedTransactions([])
+			return
+		}
+
+		// If valid, re-parse the CSV with the custom mapping
+		if (rawContent) {
+			try {
+				const transactions = parseCSV(rawContent, newMapping)
+				if (transactions.length === 0) {
+					setError('No transactions found in file.')
+					setParsedTransactions([])
+					return
+				}
+				setError(null)
+				setParsedTransactions(transactions)
+			} catch (err) {
+				setError(err instanceof Error ? err.message : 'Failed to parse file')
+				setParsedTransactions([])
+			}
+		}
+	}, [rawContent, parseCSV])
 
 	const handleDrop = useCallback((e: React.DragEvent) => {
 		e.preventDefault()
@@ -305,6 +384,16 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 							</div>
 						)}
 					</div>
+
+					{/* Column Mapping UI for Custom Format */}
+					{bankFormat === 'custom' && csvHeaders.length > 0 && (
+						<ColumnMappingUI
+							csvHeaders={csvHeaders}
+							mapping={columnMapping}
+							onMappingChange={handleColumnMappingChange}
+							error={mappingError || undefined}
+						/>
+					)}
 
 					{/* Error Message */}
 					{error && (
@@ -490,7 +579,7 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 						{step === 'upload' ? (
 							<Button
 								onClick={handleNext}
-								disabled={parsedTransactions.length === 0}
+								disabled={parsedTransactions.length === 0 || (bankFormat === 'custom' && !!mappingError)}
 								data-testid="import-next-btn"
 							>
 								Next
