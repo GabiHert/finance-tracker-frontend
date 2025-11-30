@@ -38,7 +38,7 @@ export function FilterBar({ filters, onFiltersChange, categoryOptions }: FilterB
 	return (
 		<div
 			data-testid="filter-bar"
-			className="flex flex-col sm:flex-row gap-4 p-4 bg-white border-b border-[var(--color-neutral-200)]"
+			className="flex flex-col sm:flex-row gap-4 p-4 bg-[var(--color-surface)] border-b border-[var(--color-border)]"
 		>
 			{/* Search */}
 			<div className="flex-1">

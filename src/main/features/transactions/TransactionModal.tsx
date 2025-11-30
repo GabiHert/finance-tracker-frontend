@@ -197,7 +197,7 @@ export function TransactionModal({
 						data-testid="transaction-notes"
 						placeholder="Add any additional notes..."
 						rows={3}
-						className="w-full px-3 py-2 border border-[var(--color-neutral-300)] rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
+						className="w-full px-3 py-2 border border-[var(--color-border)] rounded-[var(--radius-md)] bg-[var(--color-surface-elevated)] text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
 					/>
 				</div>
 

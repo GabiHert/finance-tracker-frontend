@@ -168,7 +168,7 @@ export function Modal({
 			<div
 				ref={modalRef}
 				className={`
-					relative z-[510] w-full bg-white
+					relative z-[510] w-full bg-[var(--color-surface-elevated)]
 					rounded-[12px] shadow-xl
 					max-h-[90vh] flex flex-col
 					animate-in zoom-in-95 fade-in duration-300
@@ -214,7 +214,7 @@ export function ModalHeader({
 		<div
 			className={`
 				flex items-center justify-between
-				p-6 pb-4 border-b border-[var(--color-neutral-200)]
+				p-6 pb-4 border-b border-[var(--color-border)]
 				${className}
 			`.replace(/\s+/g, ' ').trim()}
 			data-testid="modal-header"
@@ -227,9 +227,9 @@ export function ModalHeader({
 					onClick={onClose}
 					className={`
 						w-8 h-8 flex items-center justify-center
-						text-[var(--color-neutral-400)]
-						hover:text-[var(--color-neutral-600)]
-						hover:bg-[var(--color-neutral-100)]
+						text-[var(--color-text-muted)]
+						hover:text-[var(--color-text-secondary)]
+						hover:bg-[var(--color-border)]
 						rounded-[var(--radius-md)]
 						transition-colors duration-150
 						focus-visible:outline focus-visible:outline-2
@@ -272,7 +272,7 @@ export function ModalFooter({
 	return (
 		<div
 			className={`
-				p-6 pt-4 border-t border-[var(--color-neutral-200)]
+				p-6 pt-4 border-t border-[var(--color-border)]
 				flex items-center justify-end gap-4
 				${className}
 			`.replace(/\s+/g, ' ').trim()}

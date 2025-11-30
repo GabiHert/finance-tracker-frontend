@@ -253,13 +253,13 @@ export function Select({
 				data-testid={dataTestId === 'select' ? 'select-trigger' : dataTestId}
 				className={`
 					h-11 px-3 flex items-center justify-between
-					bg-white border rounded-[var(--radius-md)]
+					bg-[var(--color-surface-elevated)] border rounded-[var(--radius-md)]
 					transition-all duration-150
 					${disabled
-						? 'border-[var(--color-neutral-200)] bg-[var(--color-neutral-50)] cursor-not-allowed opacity-60'
+						? 'border-[var(--color-border)] bg-[var(--color-surface)] cursor-not-allowed opacity-60'
 						: error
 							? 'border-[var(--color-error)] focus:border-[var(--color-error)] focus:ring-2 focus:ring-[var(--color-error)]/20'
-							: 'border-[var(--color-neutral-300)] hover:border-[var(--color-neutral-400)] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20'
+							: 'border-[var(--color-border)] hover:border-[var(--color-border-strong)] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20'
 					}
 					${isOpen ? 'border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]/20' : ''}
 				`.replace(/\s+/g, ' ').trim()}
@@ -267,7 +267,7 @@ export function Select({
 				<span
 					className={`
 						flex-1 truncate text-left
-						${selectedValues.length === 0 ? 'text-[var(--color-neutral-400)]' : 'text-[var(--color-text)]'}
+						${selectedValues.length === 0 ? 'text-[var(--color-text-muted)]' : 'text-[var(--color-text)]'}
 					`.replace(/\s+/g, ' ').trim()}
 				>
 					{displayValue}
@@ -278,7 +278,7 @@ export function Select({
 						<button
 							type="button"
 							onClick={handleClear}
-							className="p-1 text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-600)]"
+							className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"
 							data-testid="select-clear-btn"
 							aria-label="Clear selection"
 						>
@@ -287,7 +287,7 @@ export function Select({
 					)}
 					<span
 						className={`
-							text-[var(--color-neutral-400)] transition-transform duration-200
+							text-[var(--color-text-muted)] transition-transform duration-200
 							${isOpen ? 'rotate-180' : ''}
 						`.replace(/\s+/g, ' ').trim()}
 					>
@@ -312,7 +312,7 @@ export function Select({
 				<div
 					className={`
 						absolute z-50 w-full mt-1
-						bg-white border border-[var(--color-neutral-200)]
+						bg-[var(--color-surface-elevated)] border border-[var(--color-border)]
 						rounded-[var(--radius-md)] shadow-lg
 						max-h-[280px] overflow-hidden
 					`.replace(/\s+/g, ' ').trim()}
@@ -322,7 +322,7 @@ export function Select({
 				>
 					{/* Search Input */}
 					{searchable && (
-						<div className="sticky top-0 p-2 bg-white border-b border-[var(--color-neutral-200)]">
+						<div className="sticky top-0 p-2 bg-[var(--color-surface-elevated)] border-b border-[var(--color-border)]">
 							<input
 								ref={searchInputRef}
 								type="text"
@@ -331,8 +331,8 @@ export function Select({
 								placeholder="Search..."
 								className={`
 									w-full h-9 px-3
-									border border-[var(--color-neutral-200)] rounded-[var(--radius-sm)]
-									text-sm
+									border border-[var(--color-border)] rounded-[var(--radius-sm)]
+									text-sm bg-[var(--color-surface)] text-[var(--color-text)]
 									focus:outline-none focus:border-[var(--color-primary)]
 								`.replace(/\s+/g, ' ').trim()}
 								data-testid="select-search"
@@ -343,7 +343,7 @@ export function Select({
 					{/* Options */}
 					<div className="overflow-y-auto max-h-[232px]">
 						{filteredOptions.length === 0 ? (
-							<div className="py-3 px-4 text-sm text-[var(--color-neutral-400)] text-center">
+							<div className="py-3 px-4 text-sm text-[var(--color-text-muted)] text-center">
 								No options found
 							</div>
 						) : (
@@ -359,12 +359,12 @@ export function Select({
 										h-10 px-3 flex items-center gap-2 cursor-pointer
 										transition-colors duration-100
 										${option.disabled
-											? 'text-[var(--color-neutral-300)] cursor-not-allowed'
+											? 'text-[var(--color-text-muted)] cursor-not-allowed'
 											: isSelected(option.value)
 												? 'bg-[var(--color-primary-50)] text-[var(--color-primary-600)]'
 												: highlightedIndex === index
-													? 'bg-[var(--color-neutral-50)]'
-													: 'hover:bg-[var(--color-neutral-50)]'
+													? 'bg-[var(--color-surface)] text-[var(--color-text)]'
+													: 'text-[var(--color-text)] hover:bg-[var(--color-surface)]'
 										}
 									`.replace(/\s+/g, ' ').trim()}
 								>
@@ -374,7 +374,7 @@ export function Select({
 												w-4 h-4 border rounded flex items-center justify-center
 												${isSelected(option.value)
 													? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-white'
-													: 'border-[var(--color-neutral-300)]'
+													: 'border-[var(--color-border)]'
 												}
 											`.replace(/\s+/g, ' ').trim()}
 										>

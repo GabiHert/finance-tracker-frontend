@@ -300,14 +300,14 @@ export function DatePicker({
 				data-testid={dataTestId}
 				className={`
 					h-11 px-3 flex items-center justify-between
-					bg-white border rounded-[var(--radius-md)]
+					bg-[var(--color-surface-elevated)] border rounded-[var(--radius-md)]
 					transition-all duration-150
 					${
 						disabled
-							? 'border-[var(--color-neutral-200)] bg-[var(--color-neutral-50)] cursor-not-allowed opacity-60'
+							? 'border-[var(--color-border)] bg-[var(--color-surface)] cursor-not-allowed opacity-60'
 							: error
 								? 'border-[var(--color-error)] focus:border-[var(--color-error)] focus:ring-2 focus:ring-[var(--color-error)]/20'
-								: 'border-[var(--color-neutral-300)] hover:border-[var(--color-neutral-400)] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20'
+								: 'border-[var(--color-border)] hover:border-[var(--color-border-strong)] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20'
 					}
 					${isOpen ? 'border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]/20' : ''}
 				`.replace(/\s+/g, ' ').trim()}
@@ -322,7 +322,7 @@ export function DatePicker({
 					data-testid={`${dataTestId}-input`}
 					className={`
 						flex-1 bg-transparent outline-none
-						${!inputValue ? 'text-[var(--color-neutral-400)]' : 'text-[var(--color-text)]'}
+						${!inputValue ? 'text-[var(--color-text-muted)]' : 'text-[var(--color-text)]'}
 					`.replace(/\s+/g, ' ').trim()}
 				/>
 
@@ -331,14 +331,14 @@ export function DatePicker({
 						<button
 							type="button"
 							onClick={handleClear}
-							className="p-1 text-[var(--color-neutral-400)] hover:text-[var(--color-neutral-600)]"
+							className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"
 							data-testid={`${dataTestId}-clear`}
 							aria-label="Clear date"
 						>
 							<CloseIcon />
 						</button>
 					)}
-					<span className="text-[var(--color-neutral-400)]">
+					<span className="text-[var(--color-text-muted)]">
 						<CalendarIcon />
 					</span>
 				</div>
@@ -360,7 +360,7 @@ export function DatePicker({
 				<div
 					className={`
 						absolute z-50 w-full mt-1 p-4
-						bg-white border border-[var(--color-neutral-200)]
+						bg-[var(--color-surface-elevated)] border border-[var(--color-border)]
 						rounded-[var(--radius-md)] shadow-lg
 					`.replace(/\s+/g, ' ').trim()}
 					data-testid={`${dataTestId}-dropdown`}
@@ -371,7 +371,7 @@ export function DatePicker({
 						<button
 							type="button"
 							onClick={handlePrevYear}
-							className="p-1 hover:bg-[var(--color-neutral-100)] rounded"
+							className="p-1 hover:bg-[var(--color-surface)] rounded text-[var(--color-text)]"
 							data-testid={`${dataTestId}-prev-year`}
 							aria-label="Previous year"
 						>
@@ -381,14 +381,14 @@ export function DatePicker({
 						<button
 							type="button"
 							onClick={handlePrevMonth}
-							className="p-1 hover:bg-[var(--color-neutral-100)] rounded"
+							className="p-1 hover:bg-[var(--color-surface)] rounded text-[var(--color-text)]"
 							data-testid={`${dataTestId}-prev-month`}
 							aria-label="Previous month"
 						>
 							<ChevronLeftIcon />
 						</button>
 
-						<div className="flex gap-2 text-sm font-medium">
+						<div className="flex gap-2 text-sm font-medium text-[var(--color-text)]">
 							<span data-testid={`${dataTestId}-month`}>{MONTHS[viewMonth]}</span>
 							<span data-testid={`${dataTestId}-year`}>{viewYear}</span>
 						</div>
@@ -396,7 +396,7 @@ export function DatePicker({
 						<button
 							type="button"
 							onClick={handleNextMonth}
-							className="p-1 hover:bg-[var(--color-neutral-100)] rounded"
+							className="p-1 hover:bg-[var(--color-surface)] rounded text-[var(--color-text)]"
 							data-testid={`${dataTestId}-next-month`}
 							aria-label="Next month"
 						>
@@ -406,7 +406,7 @@ export function DatePicker({
 						<button
 							type="button"
 							onClick={handleNextYear}
-							className="p-1 hover:bg-[var(--color-neutral-100)] rounded"
+							className="p-1 hover:bg-[var(--color-surface)] rounded text-[var(--color-text)]"
 							data-testid={`${dataTestId}-next-year`}
 							aria-label="Next year"
 						>
@@ -419,7 +419,7 @@ export function DatePicker({
 						{WEEKDAYS.map(day => (
 							<div
 								key={day}
-								className="text-center text-xs font-medium text-[var(--color-neutral-500)] py-1"
+								className="text-center text-xs font-medium text-[var(--color-text-secondary)] py-1"
 							>
 								{day}
 							</div>
@@ -446,12 +446,12 @@ export function DatePicker({
 									transition-colors duration-100
 									${
 										!isCurrentMonth(date)
-											? 'text-[var(--color-neutral-300)]'
+											? 'text-[var(--color-text-muted)]'
 											: isSelected(date)
 												? 'bg-[var(--color-primary)] text-white font-medium'
 												: isToday(date)
 													? 'bg-[var(--color-primary-50)] text-[var(--color-primary)] font-medium'
-													: 'hover:bg-[var(--color-neutral-100)]'
+													: 'text-[var(--color-text)] hover:bg-[var(--color-surface)]'
 									}
 								`.replace(/\s+/g, ' ').trim()}
 							>

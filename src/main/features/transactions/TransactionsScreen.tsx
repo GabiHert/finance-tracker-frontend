@@ -203,13 +203,13 @@ export function TransactionsScreen() {
 							<div key={i}>
 								<div
 									data-testid="skeleton-date-header"
-									className="h-6 w-32 bg-[var(--color-neutral-200)] rounded animate-pulse mb-2"
+									className="h-6 w-32 bg-[var(--color-border)] rounded animate-pulse mb-2"
 								/>
 								{[...Array(3)].map((_, j) => (
 									<div
 										key={j}
 										data-testid="skeleton-row"
-										className="h-20 bg-[var(--color-neutral-100)] rounded-lg mb-2 animate-pulse"
+										className="h-20 bg-[var(--color-surface)] rounded-lg mb-2 animate-pulse"
 									/>
 								))}
 							</div>
@@ -228,7 +228,7 @@ export function TransactionsScreen() {
 					<div data-testid="empty-state" className="text-center py-20">
 						<div
 							data-testid="empty-state-icon"
-							className="w-20 h-20 mx-auto mb-6 bg-[var(--color-neutral-100)] rounded-full flex items-center justify-center text-4xl"
+							className="w-20 h-20 mx-auto mb-6 bg-[var(--color-surface)] rounded-full flex items-center justify-center text-4xl"
 						>
 							💸
 						</div>
@@ -240,7 +240,7 @@ export function TransactionsScreen() {
 						</h3>
 						<p
 							data-testid="empty-state-description"
-							className="text-[var(--color-neutral-500)] mb-6"
+							className="text-[var(--color-text-secondary)] mb-6"
 						>
 							Start tracking your finances by adding your first transaction
 						</p>
@@ -259,13 +259,13 @@ export function TransactionsScreen() {
 			<div className="min-h-screen bg-[var(--color-background)]">
 				<div className="max-w-6xl mx-auto">
 					{/* Header */}
-					<div className="p-6 border-b border-[var(--color-neutral-200)]">
+					<div className="p-6 border-b border-[var(--color-border)]">
 						<div className="flex items-center justify-between mb-4">
 							<div>
 								<h1 data-testid="transactions-header" className="text-2xl font-bold text-[var(--color-text)]">
 									Transactions
 								</h1>
-								<p data-testid="transactions-count" className="text-[var(--color-neutral-500)]">
+								<p data-testid="transactions-count" className="text-[var(--color-text-secondary)]">
 									{transactions.length} total transactions
 								</p>
 							</div>
@@ -293,7 +293,7 @@ export function TransactionsScreen() {
 						</h3>
 						<p
 							data-testid="filter-empty-state-description"
-							className="text-[var(--color-neutral-500)] mb-4"
+							className="text-[var(--color-text-secondary)] mb-4"
 						>
 							Try adjusting your filters to see more results
 						</p>
@@ -314,13 +314,13 @@ export function TransactionsScreen() {
 		<div className="min-h-screen bg-[var(--color-background)]">
 			<div className="max-w-6xl mx-auto">
 				{/* Header */}
-				<div className="p-6 bg-white border-b border-[var(--color-neutral-200)]">
+				<div data-testid="transactions-header-container" className="p-6 bg-[var(--color-surface)] border-b border-[var(--color-border)]">
 					<div className="flex items-center justify-between mb-4">
 						<div>
 							<h1 data-testid="transactions-header" className="text-2xl font-bold text-[var(--color-text)]">
 								Transactions
 							</h1>
-							<p data-testid="transactions-count" className="text-[var(--color-neutral-500)]">
+							<p data-testid="transactions-count" className="text-[var(--color-text-secondary)]">
 								{filteredTransactions.length} transactions
 							</p>
 						</div>
@@ -337,19 +337,19 @@ export function TransactionsScreen() {
 					{/* Summary */}
 					<div data-testid="total-summary" className="grid grid-cols-3 gap-4 mt-4">
 						<div className="p-4 bg-[var(--color-success-50)] rounded-lg">
-							<p className="text-sm text-[var(--color-neutral-600)] mb-1">Income</p>
+							<p className="text-sm text-[var(--color-text-secondary)] mb-1">Income</p>
 							<p data-testid="income-total" className="text-xl font-bold text-[var(--color-success)]">
 								{formatCurrency(summary.income)}
 							</p>
 						</div>
 						<div className="p-4 bg-[var(--color-error-50)] rounded-lg">
-							<p className="text-sm text-[var(--color-neutral-600)] mb-1">Expense</p>
+							<p className="text-sm text-[var(--color-text-secondary)] mb-1">Expense</p>
 							<p data-testid="expense-total" className="text-xl font-bold text-[var(--color-error)]">
 								{formatCurrency(summary.expense)}
 							</p>
 						</div>
 						<div className="p-4 bg-[var(--color-primary-50)] rounded-lg">
-							<p className="text-sm text-[var(--color-neutral-600)] mb-1">Net</p>
+							<p className="text-sm text-[var(--color-text-secondary)] mb-1">Net</p>
 							<p
 								data-testid="net-total"
 								className={`text-xl font-bold ${summary.net >= 0 ? 'text-[var(--color-success)]' : 'text-[var(--color-error)]'}`}
@@ -396,26 +396,26 @@ export function TransactionsScreen() {
 				)}
 
 				{/* Transactions List */}
-				<div className="bg-white">
+				<div data-testid="transactions-list-container" className="bg-[var(--color-surface)]">
 					{/* Select All */}
-					<div className="p-4 border-b border-[var(--color-neutral-200)] flex items-center gap-3">
+					<div className="p-4 border-b border-[var(--color-border)] flex items-center gap-3">
 						<input
 							type="checkbox"
 							checked={selectedIds.size === filteredTransactions.length && filteredTransactions.length > 0}
 							onChange={handleSelectAll}
 							data-testid="select-all-transactions"
-							className="w-4 h-4 rounded border-[var(--color-neutral-300)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
+							className="w-4 h-4 rounded border-[var(--color-border)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
 						/>
-						<span className="text-sm font-medium text-[var(--color-neutral-600)]">
+						<span className="text-sm font-medium text-[var(--color-text-secondary)]">
 							Select All
 						</span>
 					</div>
 
 					{/* Grouped Transactions */}
 					{groupedTransactions.map(group => (
-						<div key={group.date} data-testid="transaction-date-group" className="border-b border-[var(--color-neutral-200)] last:border-b-0">
+						<div key={group.date} data-testid="transaction-date-group" className="border-b border-[var(--color-border)] last:border-b-0">
 							{/* Date Header */}
-							<div className="p-4 bg-[var(--color-neutral-50)] flex items-center justify-between">
+							<div className="p-4 bg-[var(--color-surface)] flex items-center justify-between">
 								<h3 data-testid="transaction-date-header" className="font-semibold text-[var(--color-text)]">
 									{group.date}
 								</h3>

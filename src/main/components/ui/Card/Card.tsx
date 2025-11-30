@@ -52,8 +52,8 @@ export function Card({
 	const isClickable = variant === 'clickable' && onClick
 
 	const baseClasses = `
-		bg-white
-		border border-[var(--color-neutral-200)]
+		bg-[var(--color-surface-elevated)]
+		border border-[var(--color-border)]
 		rounded-[8px]
 		transition-all duration-[var(--transition-default)]
 	`
@@ -105,7 +105,7 @@ export function CardHeader({
 		<div
 			className={`
 				pb-4 mb-4
-				border-b border-[var(--color-neutral-200)]
+				border-b border-[var(--color-border)]
 				font-semibold text-[var(--color-text)]
 				${className}
 			`.replace(/\s+/g, ' ').trim()}
@@ -143,7 +143,7 @@ export function CardFooter({
 		<div
 			className={`
 				pt-4 mt-4
-				border-t border-[var(--color-neutral-200)]
+				border-t border-[var(--color-border)]
 				${className}
 			`.replace(/\s+/g, ' ').trim()}
 			{...props}

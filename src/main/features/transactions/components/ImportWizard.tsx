@@ -298,19 +298,19 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 			<div data-testid="import-step-indicator" className="flex items-center justify-center gap-4 mb-6">
 				<div
 					data-testid="import-step-1"
-					className={`flex items-center gap-2 ${step === 'upload' ? 'text-[var(--color-primary)]' : 'text-[var(--color-neutral-500)]'}`}
+					className={`flex items-center gap-2 ${step === 'upload' ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-secondary)]'}`}
 				>
-					<div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'upload' ? 'bg-[var(--color-primary)] text-white' : 'bg-[var(--color-neutral-200)]'}`}>
+					<div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'upload' ? 'bg-[var(--color-primary)] text-white' : 'bg-[var(--color-border)] text-[var(--color-text-secondary)]'}`}>
 						1
 					</div>
 					<span className="font-medium">Upload</span>
 				</div>
-				<div className="w-12 h-0.5 bg-[var(--color-neutral-200)]" />
+				<div className="w-12 h-0.5 bg-[var(--color-border)]" />
 				<div
 					data-testid="import-step-2"
-					className={`flex items-center gap-2 ${step === 'categorize' ? 'text-[var(--color-primary)]' : 'text-[var(--color-neutral-500)]'}`}
+					className={`flex items-center gap-2 ${step === 'categorize' ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-secondary)]'}`}
 				>
-					<div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'categorize' ? 'bg-[var(--color-primary)] text-white' : 'bg-[var(--color-neutral-200)]'}`}>
+					<div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'categorize' ? 'bg-[var(--color-primary)] text-white' : 'bg-[var(--color-border)] text-[var(--color-text-secondary)]'}`}>
 						2
 					</div>
 					<span className="font-medium">Categorize</span>
@@ -339,7 +339,7 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 					<div
 						data-testid="file-drop-zone"
 						className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-							file ? 'border-[var(--color-primary)] bg-[var(--color-primary-50)]' : 'border-[var(--color-neutral-300)] hover:border-[var(--color-primary)]'
+							file ? 'border-[var(--color-primary)] bg-[var(--color-primary-50)]' : 'border-[var(--color-border)] hover:border-[var(--color-primary)]'
 						}`}
 						onDrop={handleDrop}
 						onDragOver={handleDragOver}
@@ -355,7 +355,7 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 						{isLoading ? (
 							<div data-testid="upload-progress" className="flex flex-col items-center gap-2">
 								<div className="w-8 h-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
-								<p className="text-[var(--color-neutral-600)]">Processing file...</p>
+								<p className="text-[var(--color-text-secondary)]">Processing file...</p>
 							</div>
 						) : file ? (
 							<div className="flex flex-col items-center gap-2">
@@ -368,7 +368,7 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 						) : (
 							<div className="flex flex-col items-center gap-2">
 								<div className="text-4xl">📂</div>
-								<p className="text-[var(--color-neutral-600)]">
+								<p className="text-[var(--color-text-secondary)]">
 									Drag and drop your file here, or
 								</p>
 								<Button
@@ -378,7 +378,7 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 								>
 									Browse Files
 								</Button>
-								<p className="text-sm text-[var(--color-neutral-500)]">
+								<p className="text-sm text-[var(--color-text-muted)]">
 									Supports CSV and OFX formats
 								</p>
 							</div>
@@ -415,19 +415,19 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 										checked={ignoreDuplicates}
 										onChange={e => setIgnoreDuplicates(e.target.checked)}
 										data-testid="ignore-duplicates-checkbox"
-										className="w-4 h-4 rounded border-[var(--color-neutral-300)]"
+										className="w-4 h-4 rounded border-[var(--color-border)]"
 									/>
-									<span className="text-sm text-[var(--color-neutral-600)]">
+									<span className="text-sm text-[var(--color-text-secondary)]">
 										Ignore duplicates
 									</span>
 								</label>
 							</div>
 
-							<div data-testid="import-preview-table" className="border border-[var(--color-neutral-200)] rounded-lg overflow-hidden max-h-64 overflow-y-auto">
+							<div data-testid="import-preview-table" className="border border-[var(--color-border)] rounded-lg overflow-hidden max-h-64 overflow-y-auto">
 								<table className="w-full">
-									<thead className="bg-[var(--color-neutral-50)] sticky top-0">
+									<thead className="bg-[var(--color-surface)] sticky top-0">
 										<tr>
-											<th className="p-2 text-left text-sm font-medium text-[var(--color-neutral-600)]">
+											<th className="p-2 text-left text-sm font-medium text-[var(--color-text-secondary)]">
 												<input
 													type="checkbox"
 													checked={parsedTransactions.every(t => t.isSelected)}
@@ -437,12 +437,12 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 															prev.map(t => ({ ...t, isSelected: !allSelected }))
 														)
 													}}
-													className="w-4 h-4 rounded border-[var(--color-neutral-300)]"
+													className="w-4 h-4 rounded border-[var(--color-border)]"
 												/>
 											</th>
-											<th className="p-2 text-left text-sm font-medium text-[var(--color-neutral-600)]">Date</th>
-											<th className="p-2 text-left text-sm font-medium text-[var(--color-neutral-600)]">Description</th>
-											<th className="p-2 text-right text-sm font-medium text-[var(--color-neutral-600)]">Amount</th>
+											<th className="p-2 text-left text-sm font-medium text-[var(--color-text-secondary)]">Date</th>
+											<th className="p-2 text-left text-sm font-medium text-[var(--color-text-secondary)]">Description</th>
+											<th className="p-2 text-right text-sm font-medium text-[var(--color-text-secondary)]">Amount</th>
 										</tr>
 									</thead>
 									<tbody>
@@ -450,7 +450,7 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 											<tr
 												key={transaction.id}
 												data-testid="import-preview-row"
-												className={`border-t border-[var(--color-neutral-200)] ${
+												className={`border-t border-[var(--color-border)] ${
 													transaction.isDuplicate ? 'bg-[var(--color-warning-50)]' : ''
 												}`}
 											>
@@ -460,7 +460,7 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 														checked={transaction.isSelected}
 														onChange={() => handleRowSelection(transaction.id)}
 														data-testid="import-row-checkbox"
-														className="w-4 h-4 rounded border-[var(--color-neutral-300)]"
+														className="w-4 h-4 rounded border-[var(--color-border)]"
 													/>
 												</td>
 												<td className="p-2 text-sm text-[var(--color-text)]">
@@ -491,7 +491,7 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 								</table>
 							</div>
 
-							<div data-testid="import-selected-count" className="mt-2 text-sm text-[var(--color-neutral-600)]">
+							<div data-testid="import-selected-count" className="mt-2 text-sm text-[var(--color-text-secondary)]">
 								{selectedCount} transactions selected for import
 							</div>
 						</div>
@@ -501,17 +501,17 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 
 			{step === 'categorize' && (
 				<div data-testid="categorize-transactions-form">
-					<p className="mb-4 text-[var(--color-neutral-600)]">
+					<p className="mb-4 text-[var(--color-text-secondary)]">
 						Assign categories to your transactions:
 					</p>
 
-					<div className="border border-[var(--color-neutral-200)] rounded-lg overflow-hidden max-h-96 overflow-y-auto">
+					<div className="border border-[var(--color-border)] rounded-lg overflow-hidden max-h-96 overflow-y-auto">
 						<table className="w-full">
-							<thead className="bg-[var(--color-neutral-50)] sticky top-0">
+							<thead className="bg-[var(--color-surface)] sticky top-0">
 								<tr>
-									<th className="p-2 text-left text-sm font-medium text-[var(--color-neutral-600)]">Description</th>
-									<th className="p-2 text-left text-sm font-medium text-[var(--color-neutral-600)]">Amount</th>
-									<th className="p-2 text-left text-sm font-medium text-[var(--color-neutral-600)]">Category</th>
+									<th className="p-2 text-left text-sm font-medium text-[var(--color-text-secondary)]">Description</th>
+									<th className="p-2 text-left text-sm font-medium text-[var(--color-text-secondary)]">Amount</th>
+									<th className="p-2 text-left text-sm font-medium text-[var(--color-text-secondary)]">Category</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -520,7 +520,7 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 									.map(transaction => (
 										<tr
 											key={transaction.id}
-											className="border-t border-[var(--color-neutral-200)]"
+											className="border-t border-[var(--color-border)]"
 										>
 											<td className="p-2 text-sm text-[var(--color-text)]">
 												{transaction.description}
@@ -552,14 +552,14 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 					<h3 className="text-xl font-bold text-[var(--color-text)] mb-2">
 						Import Complete!
 					</h3>
-					<p className="text-[var(--color-neutral-600)]">
+					<p className="text-[var(--color-text-secondary)]">
 						Successfully imported {selectedCount} transactions.
 					</p>
 				</div>
 			)}
 
 			{/* Footer */}
-			<div className="flex justify-between mt-6 pt-4 border-t border-[var(--color-neutral-200)]">
+			<div className="flex justify-between mt-6 pt-4 border-t border-[var(--color-border)]">
 				{step === 'success' ? (
 					<div className="w-full flex justify-center">
 						<Button onClick={handleClose}>

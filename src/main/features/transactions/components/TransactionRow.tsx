@@ -80,8 +80,8 @@ export function TransactionRow({
 			data-transaction-type={`transaction-row-${transaction.type}`}
 			className={`
 				flex items-center gap-4 p-4
-				border-b border-[var(--color-neutral-200)]
-				hover:bg-[var(--color-neutral-50)]
+				border-b border-[var(--color-border)]
+				hover:bg-[var(--color-surface)]
 				transition-colors duration-150
 				cursor-pointer
 				${isSelected ? 'bg-[var(--color-primary-50)]' : ''}
@@ -97,7 +97,7 @@ export function TransactionRow({
 				onChange={() => onSelect(transaction.id)}
 				onClick={e => e.stopPropagation()}
 				data-testid="transaction-checkbox"
-				className="w-4 h-4 rounded border-[var(--color-neutral-300)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
+				className="w-4 h-4 rounded border-[var(--color-border)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
 			/>
 
 			{/* Category Icon */}
@@ -120,12 +120,12 @@ export function TransactionRow({
 					</h3>
 					<span
 						data-testid="transaction-category"
-						className="text-sm text-[var(--color-neutral-500)]"
+						className="text-sm text-[var(--color-text-secondary)]"
 					>
 						{transaction.categoryName}
 					</span>
 				</div>
-				<div className="flex items-center gap-2 text-sm text-[var(--color-neutral-500)]">
+				<div className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
 					<span data-testid="transaction-date">{transaction.date}</span>
 					{transaction.notes && (
 						<>
@@ -166,7 +166,7 @@ export function TransactionRow({
 					type="button"
 					onClick={handleEdit}
 					data-testid="transaction-edit-btn"
-					className="p-2 text-[var(--color-neutral-500)] hover:text-[var(--color-primary)] hover:bg-[var(--color-primary-50)] rounded-[var(--radius-sm)] transition-colors"
+					className="p-2 text-[var(--color-text-muted)] hover:text-[var(--color-primary)] hover:bg-[var(--color-primary-50)] rounded-[var(--radius-sm)] transition-colors"
 					aria-label="Edit transaction"
 				>
 					<EditIcon />
@@ -175,7 +175,7 @@ export function TransactionRow({
 					type="button"
 					onClick={handleDelete}
 					data-testid="transaction-delete-btn"
-					className="p-2 text-[var(--color-neutral-500)] hover:text-[var(--color-error)] hover:bg-[var(--color-error-50)] rounded-[var(--radius-sm)] transition-colors"
+					className="p-2 text-[var(--color-text-muted)] hover:text-[var(--color-error)] hover:bg-[var(--color-error-50)] rounded-[var(--radius-sm)] transition-colors"
 					aria-label="Delete transaction"
 				>
 					<DeleteIcon />

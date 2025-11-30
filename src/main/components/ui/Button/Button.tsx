@@ -29,9 +29,9 @@ const variantClasses: Record<ButtonVariant, string> = {
 		active:bg-[var(--color-primary-700)]
 	`,
 	secondary: `
-		bg-[var(--color-neutral-100)] text-[var(--color-text-primary)]
-		hover:bg-[var(--color-neutral-200)]
-		active:bg-[var(--color-neutral-300)]
+		bg-[var(--color-surface-elevated)] text-[var(--color-text-primary)]
+		hover:bg-[var(--color-border)]
+		active:bg-[var(--color-border-strong)]
 		border border-[var(--color-border)]
 	`,
 	tertiary: `
@@ -119,7 +119,7 @@ export function Button({
 		transition-all duration-[150ms] ease-out
 		focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2
 		focus-visible:outline-[var(--color-primary)]
-		disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-[var(--color-neutral-200)]
+		disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-[var(--color-border)]
 	`
 
 	return (

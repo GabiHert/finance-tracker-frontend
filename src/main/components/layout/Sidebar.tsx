@@ -153,7 +153,7 @@ export function Sidebar() {
 									transition-colors duration-150
 									${isActive(item.path)
 										? 'bg-[var(--color-primary-50)] text-[var(--color-primary)]'
-										: 'text-[var(--color-text-secondary)] hover:bg-[var(--color-neutral-100)] hover:text-[var(--color-text)]'
+										: 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-text)]'
 									}
 									${isCollapsed ? 'justify-center' : ''}
 								`}
@@ -181,7 +181,7 @@ export function Sidebar() {
 					onClick={toggleCollapse}
 					className={`
 						flex items-center gap-3 w-full px-3 py-2.5 rounded-lg
-						text-[var(--color-text-secondary)] hover:bg-[var(--color-neutral-100)]
+						text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-elevated)]
 						transition-colors duration-150
 						${isCollapsed ? 'justify-center' : ''}
 					`}

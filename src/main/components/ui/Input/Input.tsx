@@ -77,7 +77,7 @@ export function Input({
 		placeholder:text-[var(--color-text-muted)]
 		transition-all duration-[var(--transition-fast)]
 		focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent
-		disabled:bg-[var(--color-neutral-100)] disabled:text-[var(--color-text-muted)] disabled:cursor-not-allowed
+		disabled:bg-[var(--color-surface)] disabled:text-[var(--color-text-muted)] disabled:cursor-not-allowed
 	`
 
 	const errorClasses = error

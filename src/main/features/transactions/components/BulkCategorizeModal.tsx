@@ -61,7 +61,7 @@ export function BulkCategorizeModal({
 				{/* Selected count */}
 				<div
 					data-testid="bulk-categorize-count"
-					className="text-sm text-[var(--color-neutral-600)]"
+					className="text-sm text-[var(--color-text-secondary)]"
 				>
 					{selectedCount} {selectedCount === 1 ? 'transacao selecionada' : 'transacoes selecionadas'}
 				</div>
@@ -70,9 +70,9 @@ export function BulkCategorizeModal({
 				{previewDescriptions.length > 0 && (
 					<div
 						data-testid="bulk-categorize-preview"
-						className="p-3 bg-[var(--color-neutral-50)] rounded-lg"
+						className="p-3 bg-[var(--color-surface)] rounded-lg"
 					>
-						<p className="text-xs text-[var(--color-neutral-500)] mb-2">Transacoes:</p>
+						<p className="text-xs text-[var(--color-text-muted)] mb-2">Transacoes:</p>
 						<ul className="text-sm text-[var(--color-text)] space-y-1">
 							{previewDescriptions.map((desc, i) => (
 								<li key={i} className="truncate">
@@ -80,7 +80,7 @@ export function BulkCategorizeModal({
 								</li>
 							))}
 							{remainingCount > 0 && (
-								<li className="text-[var(--color-neutral-500)]">
+								<li className="text-[var(--color-text-muted)]">
 									e mais {remainingCount}...
 								</li>
 							)}
@@ -101,7 +101,7 @@ export function BulkCategorizeModal({
 						value={selectedCategoryId}
 						onChange={e => setSelectedCategoryId(e.target.value)}
 						data-testid="bulk-categorize-category-select"
-						className="w-full px-4 py-3 border border-[var(--color-neutral-200)] rounded-lg text-[var(--color-text)] bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
+						className="w-full px-4 py-3 border border-[var(--color-border)] rounded-lg text-[var(--color-text)] bg-[var(--color-surface-elevated)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
 					>
 						<option value="">Selecione uma categoria</option>
 						{categoryOptions.map(option => (
@@ -113,7 +113,7 @@ export function BulkCategorizeModal({
 				</div>
 
 				{/* Actions */}
-				<div className="flex justify-end gap-3 pt-4 border-t border-[var(--color-neutral-200)]">
+				<div className="flex justify-end gap-3 pt-4 border-t border-[var(--color-border)]">
 					<Button
 						variant="outline"
 						onClick={handleClose}

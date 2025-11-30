@@ -382,7 +382,7 @@ function getIconComponent(name: string) {
 export function IconPicker({
 	value,
 	onChange,
-	color = 'var(--color-neutral-500)',
+	color = 'var(--color-text-secondary)',
 	searchable = true,
 	'data-testid': dataTestId = 'icon-picker',
 }: IconPickerProps) {
@@ -418,8 +418,8 @@ export function IconPicker({
 						placeholder="Search icons..."
 						className={`
 							w-full h-10 px-3
-							border border-[var(--color-neutral-200)] rounded-[var(--radius-md)]
-							text-sm
+							border border-[var(--color-border)] rounded-[var(--radius-md)]
+							text-sm bg-[var(--color-surface-elevated)] text-[var(--color-text)]
 							focus:outline-none focus:border-[var(--color-primary)]
 						`.replace(/\s+/g, ' ').trim()}
 						data-testid="icon-search"
@@ -448,7 +448,7 @@ export function IconPicker({
 								focus-visible:outline-[var(--color-primary)]
 								${isSelected
 									? 'bg-[var(--color-primary-50)] border-2 border-[var(--color-primary)] selected'
-									: 'hover:bg-[var(--color-neutral-50)]'
+									: 'hover:bg-[var(--color-surface)]'
 								}
 								icon-option
 							`.replace(/\s+/g, ' ').trim()}
@@ -467,7 +467,7 @@ export function IconPicker({
 			</div>
 
 			{filteredIcons.length === 0 && (
-				<div className="py-4 text-center text-sm text-[var(--color-neutral-400)]">
+				<div className="py-4 text-center text-sm text-[var(--color-text-muted)]">
 					No icons found
 				</div>
 			)}
