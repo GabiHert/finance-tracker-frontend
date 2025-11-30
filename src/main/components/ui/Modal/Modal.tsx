@@ -129,11 +129,18 @@ export function Modal({
 			// Prevent body scroll
 			document.body.style.overflow = 'hidden'
 
-			// Focus first focusable element
-			const focusableElements = modalRef.current?.querySelectorAll<HTMLElement>(
-				'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+			// Focus first input/textarea if available, otherwise first focusable element
+			const inputElement = modalRef.current?.querySelector<HTMLElement>(
+				'input:not([type="hidden"]), textarea, select'
 			)
-			focusableElements?.[0]?.focus()
+			if (inputElement) {
+				inputElement.focus()
+			} else {
+				const focusableElements = modalRef.current?.querySelectorAll<HTMLElement>(
+					'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+				)
+				focusableElements?.[0]?.focus()
+			}
 
 			return () => {
 				document.removeEventListener('keydown', handleEscapeKey)
