@@ -1,16 +1,20 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@main/components/ui/Button'
 import { GroupCard } from './components/GroupCard'
 import { GroupModal } from './GroupModal'
-import { mockGroups, mockCurrentUser } from './mock-data'
+import { getGroups, addGroup, updateGroup } from './groups-store'
 import type { Group } from './types'
 
 export function GroupsScreen() {
 	const navigate = useNavigate()
-	const [groups, setGroups] = useState<Group[]>(mockGroups)
+	const [groups, setGroups] = useState<Group[]>(getGroups)
 	const [isModalOpen, setIsModalOpen] = useState(false)
 	const [selectedGroup, setSelectedGroup] = useState<Group | null>(null)
+
+	const refreshGroups = useCallback(() => {
+		setGroups(getGroups())
+	}, [])
 
 	const handleAddGroup = () => {
 		setSelectedGroup(null)
@@ -28,25 +32,14 @@ export function GroupsScreen() {
 
 	const handleSaveGroup = (data: { name: string; description?: string }) => {
 		if (selectedGroup) {
-			setGroups(groups.map(g =>
-				g.id === selectedGroup.id
-					? { ...g, name: data.name, description: data.description, updatedAt: new Date().toISOString() }
-					: g
-			))
-		} else {
-			const newGroup: Group = {
-				id: `group-${Date.now()}`,
+			updateGroup(selectedGroup.id, {
 				name: data.name,
 				description: data.description,
-				createdAt: new Date().toISOString(),
-				updatedAt: new Date().toISOString(),
-				memberCount: 1,
-				members: [mockCurrentUser],
-				pendingInvites: [],
-				currentUserRole: 'admin',
-			}
-			setGroups([...groups, newGroup])
+			})
+		} else {
+			addGroup(data)
 		}
+		refreshGroups()
 		handleCloseModal()
 	}
 

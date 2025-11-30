@@ -8,8 +8,8 @@ import { GroupMembersTab } from './components/GroupMembersTab'
 import { GroupCategoriesTab } from './components/GroupCategoriesTab'
 import { InviteModal } from './InviteModal'
 import { GroupCategoryModal } from './GroupCategoryModal'
+import { getGroupById } from './groups-store'
 import {
-	mockGroups,
 	mockGroupTransactions,
 	mockGroupCategories,
 	mockGroupSummary,
@@ -82,7 +82,7 @@ export function GroupDetailScreen() {
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
 	useEffect(() => {
-		const foundGroup = mockGroups.find(g => g.id === groupId)
+		const foundGroup = getGroupById(groupId || '')
 		if (foundGroup) {
 			setGroup(foundGroup)
 		}
