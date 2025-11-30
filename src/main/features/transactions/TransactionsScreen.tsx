@@ -18,6 +18,8 @@ import {
 	type FetchTransactionsResult,
 } from './api/transactions'
 import type { Transaction, TransactionFilters, TransactionFormData } from './types'
+import { fetchCategories } from '@main/features/categories/api/categories'
+import type { Category } from '@main/features/categories/types'
 
 export function TransactionsScreen() {
 	const [searchParams] = useSearchParams()
@@ -44,6 +46,17 @@ export function TransactionsScreen() {
 	const [showBulkCategorizeModal, setShowBulkCategorizeModal] = useState(false)
 	const [isImportModalOpen, setIsImportModalOpen] = useState(false)
 	const [isSaving, setIsSaving] = useState(false)
+	const [categories, setCategories] = useState<Category[]>([])
+
+	// Load categories from API
+	const loadCategories = useCallback(async () => {
+		try {
+			const fetchedCategories = await fetchCategories()
+			setCategories(fetchedCategories)
+		} catch (err) {
+			console.error('Error loading categories:', err)
+		}
+	}, [])
 
 	// Load transactions from API
 	const loadTransactions = useCallback(async () => {
@@ -72,6 +85,10 @@ export function TransactionsScreen() {
 	useEffect(() => {
 		loadTransactions()
 	}, [loadTransactions])
+
+	useEffect(() => {
+		loadCategories()
+	}, [loadCategories])
 
 	// Filter transactions locally for search (API handles type and category filters)
 	const filteredTransactions = useMemo(() => {
@@ -128,13 +145,14 @@ export function TransactionsScreen() {
 		)
 	}, [filteredTransactions, totals])
 
-	// Category options for filters
+	// Category options for filters and modal
 	const categoryOptions = useMemo(() => {
-		const uniqueCategories = Array.from(
-			new Set(transactions.map(t => JSON.stringify({ value: t.categoryId, label: t.categoryName, icon: t.categoryIcon })))
-		).map(str => JSON.parse(str))
-		return uniqueCategories
-	}, [transactions])
+		return categories.map(c => ({
+			value: c.id,
+			label: c.name,
+			icon: c.icon,
+		}))
+	}, [categories])
 
 	// Selected transaction descriptions for bulk categorize preview
 	const selectedTransactionDescriptions = useMemo(() => {
@@ -368,6 +386,15 @@ export function TransactionsScreen() {
 						</Button>
 					</div>
 				</div>
+
+				{/* Transaction Modal - needed for empty state */}
+				<TransactionModal
+					isOpen={isModalOpen}
+					onClose={() => setIsModalOpen(false)}
+					onSave={handleSaveTransaction}
+					transaction={selectedTransaction}
+					categoryOptions={categoryOptions}
+				/>
 			</div>
 		)
 	}
@@ -425,6 +452,15 @@ export function TransactionsScreen() {
 						</Button>
 					</div>
 				</div>
+
+				{/* Transaction Modal - needed for filter empty state */}
+				<TransactionModal
+					isOpen={isModalOpen}
+					onClose={() => setIsModalOpen(false)}
+					onSave={handleSaveTransaction}
+					transaction={selectedTransaction}
+					categoryOptions={categoryOptions}
+				/>
 			</div>
 		)
 	}
