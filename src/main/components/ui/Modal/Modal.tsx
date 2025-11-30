@@ -78,6 +78,7 @@ export function Modal({
 }: ModalProps) {
 	const modalRef = useRef<HTMLDivElement>(null)
 	const previousActiveElement = useRef<HTMLElement | null>(null)
+	const hasInitialFocused = useRef(false)
 
 	const handleEscapeKey = useCallback(
 		(event: KeyboardEvent) => {
@@ -119,9 +120,6 @@ export function Modal({
 
 	useEffect(() => {
 		if (isOpen) {
-			// Save current focus
-			previousActiveElement.current = document.activeElement as HTMLElement
-
 			// Add event listeners
 			document.addEventListener('keydown', handleEscapeKey)
 			document.addEventListener('keydown', handleTabKey)
@@ -130,16 +128,23 @@ export function Modal({
 			document.body.style.overflow = 'hidden'
 
 			// Focus first input/textarea if available, otherwise first focusable element
-			const inputElement = modalRef.current?.querySelector<HTMLElement>(
-				'input:not([type="hidden"]), textarea, select'
-			)
-			if (inputElement) {
-				inputElement.focus()
-			} else {
-				const focusableElements = modalRef.current?.querySelectorAll<HTMLElement>(
-					'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+			// Only do this on initial modal open to avoid stealing focus while typing
+			if (!hasInitialFocused.current) {
+				// Save current focus (only on initial open)
+				previousActiveElement.current = document.activeElement as HTMLElement
+				hasInitialFocused.current = true
+
+				const inputElement = modalRef.current?.querySelector<HTMLElement>(
+					'input:not([type="hidden"]), textarea, select'
 				)
-				focusableElements?.[0]?.focus()
+				if (inputElement) {
+					inputElement.focus()
+				} else {
+					const focusableElements = modalRef.current?.querySelectorAll<HTMLElement>(
+						'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+					)
+					focusableElements?.[0]?.focus()
+				}
 			}
 
 			return () => {
@@ -150,6 +155,9 @@ export function Modal({
 				// Restore focus
 				previousActiveElement.current?.focus()
 			}
+		} else {
+			// Reset the flag when modal closes
+			hasInitialFocused.current = false
 		}
 	}, [isOpen, handleEscapeKey, handleTabKey])
 
