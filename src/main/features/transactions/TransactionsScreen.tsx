@@ -1,21 +1,33 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Button } from '@main/components/ui/Button'
 import { Modal } from '@main/components/ui/Modal'
+import { useToast } from '@main/components/layout/Toast'
 import { FilterBar } from './components/FilterBar'
 import { TransactionRow } from './components/TransactionRow'
 import { ImportWizard } from './components/ImportWizard'
 import { BulkCategorizeModal } from './components/BulkCategorizeModal'
 import { TransactionModal } from './TransactionModal'
-import { mockTransactions } from './mock-data'
+import {
+	fetchTransactions,
+	createTransaction,
+	updateTransaction,
+	deleteTransaction as deleteTransactionApi,
+	bulkDeleteTransactions,
+	bulkCategorizeTransactions,
+	type FetchTransactionsResult,
+} from './api/transactions'
 import type { Transaction, TransactionFilters, TransactionFormData } from './types'
 
 export function TransactionsScreen() {
 	const [searchParams] = useSearchParams()
 	const isEmpty = searchParams.get('empty') === 'true'
-	const isLoading = searchParams.get('loading') === 'true'
+	const { showToast } = useToast()
 
-	const [transactions] = useState<Transaction[]>(isEmpty ? [] : mockTransactions)
+	const [transactions, setTransactions] = useState<Transaction[]>([])
+	const [isLoading, setIsLoading] = useState(!isEmpty)
+	const [error, setError] = useState<string | null>(null)
+	const [totals, setTotals] = useState({ income: 0, expense: 0, net: 0 })
 	const [filters, setFilters] = useState<TransactionFilters>({
 		search: '',
 		startDate: '',
@@ -31,24 +43,47 @@ export function TransactionsScreen() {
 	const [showBulkDeleteConfirmation, setShowBulkDeleteConfirmation] = useState(false)
 	const [showBulkCategorizeModal, setShowBulkCategorizeModal] = useState(false)
 	const [isImportModalOpen, setIsImportModalOpen] = useState(false)
+	const [isSaving, setIsSaving] = useState(false)
 
-	// Filter transactions
+	// Load transactions from API
+	const loadTransactions = useCallback(async () => {
+		if (isEmpty) return
+
+		setIsLoading(true)
+		setError(null)
+		try {
+			const result = await fetchTransactions({
+				type: filters.type === 'all' ? undefined : filters.type,
+				categoryId: filters.categoryId || undefined,
+				search: filters.search || undefined,
+				startDate: filters.startDate || undefined,
+				endDate: filters.endDate || undefined,
+			})
+			setTransactions(result.transactions)
+			setTotals(result.totals)
+		} catch (err) {
+			setError(err instanceof Error ? err.message : 'Erro ao carregar transacoes')
+			console.error('Error loading transactions:', err)
+		} finally {
+			setIsLoading(false)
+		}
+	}, [isEmpty, filters])
+
+	useEffect(() => {
+		loadTransactions()
+	}, [loadTransactions])
+
+	// Filter transactions locally for search (API handles type and category filters)
 	const filteredTransactions = useMemo(() => {
+		// Most filtering is done server-side, but we can do local search for responsiveness
+		if (!filters.search) return transactions
 		return transactions.filter(t => {
-			const matchesSearch =
-				!filters.search ||
+			return (
 				t.description.toLowerCase().includes(filters.search.toLowerCase()) ||
 				t.categoryName.toLowerCase().includes(filters.search.toLowerCase())
-
-			const matchesType = filters.type === 'all' || t.type === filters.type
-
-			const matchesCategory = !filters.categoryId || t.categoryId === filters.categoryId
-
-			// Date filtering would go here in a real app
-
-			return matchesSearch && matchesType && matchesCategory
+			)
 		})
-	}, [transactions, filters])
+	}, [transactions, filters.search])
 
 	// Group by date
 	const groupedTransactions = useMemo(() => {
@@ -72,8 +107,13 @@ export function TransactionsScreen() {
 		})
 	}, [filteredTransactions])
 
-	// Calculate summary
+	// Use API-provided totals (or calculate from local data if needed)
 	const summary = useMemo(() => {
+		// Use totals from API response
+		if (totals.income > 0 || totals.expense > 0) {
+			return totals
+		}
+		// Fallback: calculate from local data
 		return filteredTransactions.reduce(
 			(acc, t) => {
 				if (t.type === 'income') {
@@ -86,7 +126,7 @@ export function TransactionsScreen() {
 			},
 			{ income: 0, expense: 0, net: 0 }
 		)
-	}, [filteredTransactions])
+	}, [filteredTransactions, totals])
 
 	// Category options for filters
 	const categoryOptions = useMemo(() => {
@@ -144,11 +184,22 @@ export function TransactionsScreen() {
 		setShowDeleteConfirmation(true)
 	}, [])
 
-	const confirmDelete = useCallback(() => {
-		console.log('Delete transaction:', transactionToDelete)
-		setShowDeleteConfirmation(false)
-		setTransactionToDelete(null)
-	}, [transactionToDelete])
+	const confirmDelete = useCallback(async () => {
+		if (!transactionToDelete) return
+
+		setIsSaving(true)
+		try {
+			await deleteTransactionApi(transactionToDelete)
+			showToast('success', 'Transacao excluida')
+			setShowDeleteConfirmation(false)
+			setTransactionToDelete(null)
+			await loadTransactions()
+		} catch (err) {
+			showToast('error', err instanceof Error ? err.message : 'Erro ao excluir transacao')
+		} finally {
+			setIsSaving(false)
+		}
+	}, [transactionToDelete, loadTransactions, showToast])
 
 	const handleBulkDelete = useCallback(() => {
 		setShowBulkDeleteConfirmation(true)
@@ -158,23 +209,67 @@ export function TransactionsScreen() {
 		setShowBulkCategorizeModal(true)
 	}, [])
 
-	const handleBulkCategorizeApply = useCallback((categoryId: string) => {
-		console.log('Bulk categorize transactions:', Array.from(selectedIds), 'to category:', categoryId)
-		// In a real app, this would call the API: POST /transactions/bulk-categorize
-		setShowBulkCategorizeModal(false)
-		setSelectedIds(new Set())
-	}, [selectedIds])
+	const handleBulkCategorizeApply = useCallback(async (categoryId: string) => {
+		setIsSaving(true)
+		try {
+			await bulkCategorizeTransactions(Array.from(selectedIds), categoryId)
+			showToast('success', `${selectedIds.size} transacoes categorizadas`)
+			setShowBulkCategorizeModal(false)
+			setSelectedIds(new Set())
+			await loadTransactions()
+		} catch (err) {
+			showToast('error', err instanceof Error ? err.message : 'Erro ao categorizar transacoes')
+		} finally {
+			setIsSaving(false)
+		}
+	}, [selectedIds, loadTransactions, showToast])
 
-	const confirmBulkDelete = useCallback(() => {
-		console.log('Delete transactions:', Array.from(selectedIds))
-		setShowBulkDeleteConfirmation(false)
-		setSelectedIds(new Set())
-	}, [selectedIds])
+	const confirmBulkDelete = useCallback(async () => {
+		setIsSaving(true)
+		try {
+			await bulkDeleteTransactions(Array.from(selectedIds))
+			showToast('success', `${selectedIds.size} transacoes excluidas`)
+			setShowBulkDeleteConfirmation(false)
+			setSelectedIds(new Set())
+			await loadTransactions()
+		} catch (err) {
+			showToast('error', err instanceof Error ? err.message : 'Erro ao excluir transacoes')
+		} finally {
+			setIsSaving(false)
+		}
+	}, [selectedIds, loadTransactions, showToast])
 
-	const handleSaveTransaction = useCallback((data: TransactionFormData) => {
-		console.log('Save transaction:', data)
-		setIsModalOpen(false)
-	}, [])
+	const handleSaveTransaction = useCallback(async (data: TransactionFormData) => {
+		setIsSaving(true)
+		try {
+			// Convert DD/MM/YYYY to YYYY-MM-DD for API
+			const [day, month, year] = data.date.split('/')
+			const apiDate = `${year}-${month}-${day}`
+
+			const input = {
+				date: apiDate,
+				description: data.description,
+				amount: data.amount,
+				type: data.type,
+				categoryId: data.categoryId || undefined,
+				notes: data.notes,
+			}
+
+			if (selectedTransaction) {
+				await updateTransaction(selectedTransaction.id, input)
+				showToast('success', 'Transacao atualizada')
+			} else {
+				await createTransaction(input)
+				showToast('success', 'Transacao criada')
+			}
+			setIsModalOpen(false)
+			await loadTransactions()
+		} catch (err) {
+			showToast('error', err instanceof Error ? err.message : 'Erro ao salvar transacao')
+		} finally {
+			setIsSaving(false)
+		}
+	}, [selectedTransaction, loadTransactions, showToast])
 
 	const handleImport = useCallback(() => {
 		setIsImportModalOpen(true)
@@ -198,6 +293,11 @@ export function TransactionsScreen() {
 		return (
 			<div className="min-h-screen bg-[var(--color-background)]">
 				<div className="max-w-6xl mx-auto">
+					<div className="p-6 border-b border-[var(--color-border)]">
+						<h1 data-testid="transactions-header" className="text-2xl font-bold text-[var(--color-text)]">
+							Transactions
+						</h1>
+					</div>
 					<div data-testid="transactions-skeleton" className="p-6 space-y-4">
 						{[...Array(5)].map((_, i) => (
 							<div key={i}>
@@ -214,6 +314,25 @@ export function TransactionsScreen() {
 								))}
 							</div>
 						))}
+					</div>
+				</div>
+			</div>
+		)
+	}
+
+	// Error state
+	if (error) {
+		return (
+			<div className="min-h-screen bg-[var(--color-background)]">
+				<div className="max-w-6xl mx-auto">
+					<div className="p-6 border-b border-[var(--color-border)]">
+						<h1 data-testid="transactions-header" className="text-2xl font-bold text-[var(--color-text)]">
+							Transactions
+						</h1>
+					</div>
+					<div data-testid="error-state" className="text-center py-12">
+						<p className="text-[var(--color-error)] mb-4">{error}</p>
+						<Button onClick={loadTransactions}>Tentar novamente</Button>
 					</div>
 				</div>
 			</div>
