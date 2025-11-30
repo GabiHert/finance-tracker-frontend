@@ -12,6 +12,7 @@ interface CategoryModalProps {
 	onClose: () => void
 	onSave: (data: CreateCategoryInput) => void
 	category?: Category | null
+	isSaving?: boolean
 }
 
 const typeOptions = [
@@ -19,7 +20,7 @@ const typeOptions = [
 	{ value: 'income', label: 'Income' },
 ]
 
-export function CategoryModal({ isOpen, onClose, onSave, category }: CategoryModalProps) {
+export function CategoryModal({ isOpen, onClose, onSave, category, isSaving = false }: CategoryModalProps) {
 	const [name, setName] = useState('')
 	const [icon, setIcon] = useState('wallet')
 	const [color, setColor] = useState('#3B82F6')
@@ -93,11 +94,11 @@ export function CategoryModal({ isOpen, onClose, onSave, category }: CategoryMod
 			data-testid="category-modal"
 			footer={
 				<>
-					<Button variant="secondary" onClick={onClose}>
+					<Button variant="secondary" onClick={onClose} disabled={isSaving}>
 						Cancel
 					</Button>
-					<Button onClick={handleSubmit} data-testid="save-category-btn">
-						{isEditing ? 'Save Changes' : 'Create Category'}
+					<Button onClick={handleSubmit} data-testid="save-category-btn" disabled={isSaving}>
+						{isSaving ? 'Saving...' : isEditing ? 'Save Changes' : 'Create Category'}
 					</Button>
 				</>
 			}

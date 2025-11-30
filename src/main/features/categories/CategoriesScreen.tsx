@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Button } from '@main/components/ui/Button'
 import { Input } from '@main/components/ui/Input'
@@ -7,8 +7,13 @@ import { Modal } from '@main/components/ui/Modal'
 import { useToast } from '@main/components/layout/Toast'
 import { CategoryCard } from './components/CategoryCard'
 import { CategoryModal } from './CategoryModal'
-import { mockCategories } from './mock-data'
-import type { Category } from './types'
+import {
+	fetchCategories,
+	createCategory,
+	updateCategory,
+	deleteCategory as deleteCategoryApi,
+} from './api/categories'
+import type { Category, CreateCategoryInput } from './types'
 
 const typeFilterOptions = [
 	{ value: 'all', label: 'All Types' },
@@ -21,13 +26,36 @@ export function CategoriesScreen() {
 	const isEmpty = searchParams.get('empty') === 'true'
 	const { showToast } = useToast()
 
-	const [categories, setCategories] = useState<Category[]>(isEmpty ? [] : mockCategories)
+	const [categories, setCategories] = useState<Category[]>([])
+	const [isLoading, setIsLoading] = useState(!isEmpty)
+	const [error, setError] = useState<string | null>(null)
 	const [searchQuery, setSearchQuery] = useState('')
 	const [typeFilter, setTypeFilter] = useState<string>('all')
 	const [isModalOpen, setIsModalOpen] = useState(false)
 	const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
 	const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null)
 	const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+	const [isSaving, setIsSaving] = useState(false)
+
+	const loadCategories = useCallback(async () => {
+		if (isEmpty) return
+
+		setIsLoading(true)
+		setError(null)
+		try {
+			const data = await fetchCategories()
+			setCategories(data)
+		} catch (err) {
+			setError(err instanceof Error ? err.message : 'Erro ao carregar categorias')
+			console.error('Error loading categories:', err)
+		} finally {
+			setIsLoading(false)
+		}
+	}, [isEmpty])
+
+	useEffect(() => {
+		loadCategories()
+	}, [loadCategories])
 
 	const filteredCategories = useMemo(() => {
 		return categories.filter(category => {
@@ -53,9 +81,36 @@ export function CategoriesScreen() {
 		setSelectedCategory(null)
 	}
 
-	const handleSaveCategory = (data: Partial<Category>) => {
-		console.log('Save category:', data)
-		handleCloseModal()
+	const handleSaveCategory = async (data: Partial<Category>) => {
+		setIsSaving(true)
+		try {
+			if (selectedCategory) {
+				// Update existing category
+				await updateCategory(selectedCategory.id, {
+					name: data.name,
+					icon: data.icon,
+					color: data.color,
+				})
+				showToast('success', 'Categoria atualizada')
+			} else {
+				// Create new category
+				const input: CreateCategoryInput = {
+					name: data.name || '',
+					icon: data.icon || 'folder',
+					color: data.color || '#6B7280',
+					type: data.type || 'expense',
+					description: data.description,
+				}
+				await createCategory(input)
+				showToast('success', 'Categoria criada')
+			}
+			handleCloseModal()
+			await loadCategories()
+		} catch (err) {
+			showToast('error', err instanceof Error ? err.message : 'Erro ao salvar categoria')
+		} finally {
+			setIsSaving(false)
+		}
 	}
 
 	const handleDeleteClick = (category: Category) => {
@@ -68,12 +123,56 @@ export function CategoriesScreen() {
 		setCategoryToDelete(null)
 	}
 
-	const handleConfirmDelete = () => {
-		if (categoryToDelete) {
-			setCategories(prev => prev.filter(c => c.id !== categoryToDelete.id))
+	const handleConfirmDelete = async () => {
+		if (!categoryToDelete) return
+
+		setIsSaving(true)
+		try {
+			await deleteCategoryApi(categoryToDelete.id)
 			showToast('success', 'Categoria excluida')
+			handleCancelDelete()
+			await loadCategories()
+		} catch (err) {
+			showToast('error', err instanceof Error ? err.message : 'Erro ao excluir categoria')
+		} finally {
+			setIsSaving(false)
 		}
-		handleCancelDelete()
+	}
+
+	if (isLoading) {
+		return (
+			<div data-testid="categories-screen" className="min-h-screen p-6 bg-[var(--color-background)]">
+				<div className="max-w-6xl mx-auto">
+					<div className="flex items-center justify-between mb-6">
+						<h1 className="text-2xl font-bold text-[var(--color-text)]">
+							Categories
+						</h1>
+					</div>
+					<div data-testid="loading-state" className="text-center py-12">
+						<div className="w-8 h-8 mx-auto mb-4 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
+						<p className="text-[var(--color-text-secondary)]">Carregando categorias...</p>
+					</div>
+				</div>
+			</div>
+		)
+	}
+
+	if (error) {
+		return (
+			<div data-testid="categories-screen" className="min-h-screen p-6 bg-[var(--color-background)]">
+				<div className="max-w-6xl mx-auto">
+					<div className="flex items-center justify-between mb-6">
+						<h1 className="text-2xl font-bold text-[var(--color-text)]">
+							Categories
+						</h1>
+					</div>
+					<div data-testid="error-state" className="text-center py-12">
+						<p className="text-[var(--color-error)] mb-4">{error}</p>
+						<Button onClick={loadCategories}>Tentar novamente</Button>
+					</div>
+				</div>
+			</div>
+		)
 	}
 
 	return (
@@ -166,6 +265,7 @@ export function CategoriesScreen() {
 				onClose={handleCloseModal}
 				onSave={handleSaveCategory}
 				category={selectedCategory}
+				isSaving={isSaving}
 			/>
 
 			<Modal
@@ -180,6 +280,7 @@ export function CategoriesScreen() {
 							variant="secondary"
 							onClick={handleCancelDelete}
 							data-testid="cancel-delete-btn"
+							disabled={isSaving}
 						>
 							Cancelar
 						</Button>
@@ -187,8 +288,9 @@ export function CategoriesScreen() {
 							variant="danger"
 							onClick={handleConfirmDelete}
 							data-testid="confirm-delete-btn"
+							disabled={isSaving}
 						>
-							Excluir
+							{isSaving ? 'Excluindo...' : 'Excluir'}
 						</Button>
 					</>
 				}
