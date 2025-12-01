@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Button } from '@main/components/ui/Button'
 import { MetricCard } from './components/MetricCard'
 import { PeriodSelector } from './components/PeriodSelector'
@@ -7,14 +7,7 @@ import { TrendsChart } from './components/TrendsChart'
 import { RecentTransactions } from './components/RecentTransactions'
 import { GoalsProgress } from './components/GoalsProgress'
 import { AlertsBanner } from './components/AlertsBanner'
-import {
-	mockSummary,
-	mockCategoryBreakdown,
-	mockTrendsData,
-	mockRecentTransactions,
-	mockGoalsProgress,
-	mockAlerts,
-} from './mock-data'
+import { fetchDashboardData, type DashboardData } from './api/dashboard'
 import type { Period } from './types'
 
 function RefreshIcon() {
@@ -30,25 +23,45 @@ function RefreshIcon() {
 
 export function DashboardScreen() {
 	const [period, setPeriod] = useState<Period>('this_month')
-	const [isLoading, setIsLoading] = useState(false)
+	const [isLoading, setIsLoading] = useState(true)
 	const [lastUpdated, setLastUpdated] = useState(new Date())
+	const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
+	const [error, setError] = useState<string | null>(null)
 
-	// Use mock data
-	const summary = mockSummary
-	const categoryBreakdown = mockCategoryBreakdown
-	const trendsData = mockTrendsData
-	const recentTransactions = mockRecentTransactions
-	const goalsProgress = mockGoalsProgress
-	const alerts = mockAlerts
+	const loadDashboardData = useCallback(async () => {
+		setIsLoading(true)
+		setError(null)
+		try {
+			const data = await fetchDashboardData(period)
+			setDashboardData(data)
+			setLastUpdated(new Date())
+		} catch (err) {
+			setError(err instanceof Error ? err.message : 'Erro ao carregar dashboard')
+		} finally {
+			setIsLoading(false)
+		}
+	}, [period])
+
+	useEffect(() => {
+		loadDashboardData()
+	}, [loadDashboardData])
 
 	const handleRefresh = useCallback(() => {
-		setIsLoading(true)
-		// Simulate API call
-		setTimeout(() => {
-			setIsLoading(false)
-			setLastUpdated(new Date())
-		}, 500)
-	}, [])
+		loadDashboardData()
+	}, [loadDashboardData])
+
+	// Default empty values when data is loading
+	const summary = dashboardData?.summary ?? {
+		totalBalance: 0,
+		totalIncome: 0,
+		totalExpenses: 0,
+		netSavings: 0,
+	}
+	const categoryBreakdown = dashboardData?.categoryBreakdown ?? []
+	const trendsData = dashboardData?.trendsData ?? []
+	const recentTransactions = dashboardData?.recentTransactions ?? []
+	const goalsProgress = dashboardData?.goalsProgress ?? []
+	const alerts = dashboardData?.alerts ?? []
 
 	const formatLastUpdated = (date: Date) => {
 		return new Intl.DateTimeFormat('pt-BR', {
@@ -98,6 +111,19 @@ export function DashboardScreen() {
 				{alerts.length > 0 && (
 					<div className="mb-6">
 						<AlertsBanner alerts={alerts} />
+					</div>
+				)}
+
+				{/* Error Banner */}
+				{error && (
+					<div className="mb-6 p-4 bg-red-100 border border-red-300 rounded-lg text-red-700">
+						<p>{error}</p>
+						<button
+							onClick={handleRefresh}
+							className="mt-2 text-sm underline hover:no-underline"
+						>
+							Tentar novamente
+						</button>
 					</div>
 				)}
 

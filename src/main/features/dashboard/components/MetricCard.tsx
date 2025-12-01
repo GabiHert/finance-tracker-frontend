@@ -102,7 +102,7 @@ export function MetricCard({ testId, label, value, change, type }: MetricCardPro
 			</span>
 			<span data-testid="metric-value" className={`text-2xl font-bold ${getValueColor()}`}>
 				{type === 'expenses' ? '-' : ''}
-				{formatCurrency(value)}
+				{formatCurrency(value, type === 'expenses' || type === 'income')}
 			</span>
 		</div>
 	)

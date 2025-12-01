@@ -53,11 +53,12 @@ export interface DashboardAlert {
 
 export type Period = 'this_month' | 'last_month' | 'this_week' | 'last_week' | 'custom'
 
-export function formatCurrency(value: number): string {
+export function formatCurrency(value: number, useAbsoluteValue = false): string {
+	const numericValue = useAbsoluteValue ? Math.abs(value) : value
 	return new Intl.NumberFormat('pt-BR', {
 		style: 'currency',
 		currency: 'BRL',
-	}).format(Math.abs(value))
+	}).format(numericValue)
 }
 
 export function formatPercentage(value: number): string {
