@@ -20,7 +20,7 @@ interface ParsedTransaction {
 interface ImportWizardProps {
 	isOpen: boolean
 	onClose: () => void
-	onImport: (transactions: ParsedTransaction[]) => void
+	onImport: (transactions: ParsedTransaction[]) => void | Promise<void>
 	categoryOptions: Array<{ value: string; label: string }>
 }
 
@@ -64,9 +64,9 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 		setRawContent('')
 	}, [])
 
-	const handleClose = useCallback(() => {
+	const handleClose = useCallback(async () => {
 		resetState()
-		onClose()
+		await onClose()
 	}, [onClose, resetState])
 
 	const parseCSV = useCallback((content: string, customMapping?: ColumnMapping): ParsedTransaction[] => {
@@ -262,15 +262,22 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 		}
 	}, [step])
 
-	const handleImport = useCallback(() => {
+	const handleImport = useCallback(async () => {
 		const transactionsToImport = parsedTransactions.filter(t => {
 			if (!t.isSelected) return false
 			if (ignoreDuplicates && t.isDuplicate) return false
 			return true
 		})
 
-		onImport(transactionsToImport)
-		setStep('success')
+		setIsLoading(true)
+		try {
+			await onImport(transactionsToImport)
+			setStep('success')
+		} catch (err) {
+			setError(err instanceof Error ? err.message : 'Failed to import transactions')
+		} finally {
+			setIsLoading(false)
+		}
 	}, [parsedTransactions, ignoreDuplicates, onImport])
 
 	const selectedCount = parsedTransactions.filter(t => t.isSelected && (!ignoreDuplicates || !t.isDuplicate)).length
@@ -562,7 +569,7 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 			<div className="flex justify-between mt-6 pt-4 border-t border-[var(--color-border)]">
 				{step === 'success' ? (
 					<div className="w-full flex justify-center">
-						<Button onClick={handleClose}>
+						<Button onClick={handleClose} data-testid="import-done-btn">
 							Done
 						</Button>
 					</div>
@@ -587,9 +594,10 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 						) : (
 							<Button
 								onClick={handleImport}
+								disabled={isLoading}
 								data-testid="import-confirm-btn"
 							>
-								Import {selectedCount} Transactions
+								{isLoading ? 'Importing...' : `Import ${selectedCount} Transactions`}
 							</Button>
 						)}
 					</>

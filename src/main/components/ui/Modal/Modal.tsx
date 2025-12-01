@@ -118,12 +118,9 @@ export function Modal({
 		}
 	}, [])
 
+	// Effect for focus management - only runs when isOpen changes
 	useEffect(() => {
 		if (isOpen) {
-			// Add event listeners
-			document.addEventListener('keydown', handleEscapeKey)
-			document.addEventListener('keydown', handleTabKey)
-
 			// Prevent body scroll
 			document.body.style.overflow = 'hidden'
 
@@ -148,16 +145,26 @@ export function Modal({
 			}
 
 			return () => {
-				document.removeEventListener('keydown', handleEscapeKey)
-				document.removeEventListener('keydown', handleTabKey)
 				document.body.style.overflow = ''
-
-				// Restore focus
+				// Restore focus only when modal actually closes
 				previousActiveElement.current?.focus()
 			}
 		} else {
 			// Reset the flag when modal closes
 			hasInitialFocused.current = false
+		}
+	}, [isOpen])
+
+	// Separate effect for keyboard event listeners - can re-run without affecting focus
+	useEffect(() => {
+		if (isOpen) {
+			document.addEventListener('keydown', handleEscapeKey)
+			document.addEventListener('keydown', handleTabKey)
+
+			return () => {
+				document.removeEventListener('keydown', handleEscapeKey)
+				document.removeEventListener('keydown', handleTabKey)
+			}
 		}
 	}, [isOpen, handleEscapeKey, handleTabKey])
 

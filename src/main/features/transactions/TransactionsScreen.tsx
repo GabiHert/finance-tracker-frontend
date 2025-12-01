@@ -293,10 +293,37 @@ export function TransactionsScreen() {
 		setIsImportModalOpen(true)
 	}, [])
 
-	const handleImportComplete = useCallback((importedTransactions: unknown[]) => {
-		console.log('Imported transactions:', importedTransactions)
-		// Note: Don't close modal here - let ImportWizard show success state
-		// The modal will close when user clicks "Done" in the success screen
+	const handleImportClose = useCallback(async () => {
+		// Close modal FIRST, then load transactions
+		// This prevents the modal from showing a fresh state when view switches
+		// from empty to normal (which would remount the ImportWizard component)
+		setIsImportModalOpen(false)
+		await loadTransactions()
+	}, [loadTransactions])
+
+	const handleImportComplete = useCallback(async (importedTransactions: unknown[]) => {
+		interface ImportedTransaction {
+			date: string
+			description: string
+			amount: number
+			type: 'income' | 'expense'
+			categoryId?: string
+		}
+
+		const txns = importedTransactions as ImportedTransaction[]
+
+		// Create all imported transactions via API
+		for (const txn of txns) {
+			await createTransaction({
+				date: txn.date,
+				description: txn.description,
+				amount: txn.amount,
+				type: txn.type,
+				categoryId: txn.categoryId,
+			})
+		}
+		// Note: Don't refresh here - it would unmount the empty state and reset the modal
+		// The modal will close when user clicks "Done", then we refresh
 	}, [])
 
 	const formatCurrency = (amount: number) => {
@@ -306,118 +333,215 @@ export function TransactionsScreen() {
 		}).format(amount)
 	}
 
-	// Loading skeleton
-	if (isLoading) {
-		return (
-			<div className="min-h-screen bg-[var(--color-background)]">
-				<div className="max-w-6xl mx-auto">
-					<div className="p-6 border-b border-[var(--color-border)]">
-						<h1 data-testid="transactions-header" className="text-2xl font-bold text-[var(--color-text)]">
-							Transactions
-						</h1>
-					</div>
-					<div data-testid="transactions-skeleton" className="p-6 space-y-4">
-						{[...Array(5)].map((_, i) => (
-							<div key={i}>
-								<div
-									data-testid="skeleton-date-header"
-									className="h-6 w-32 bg-[var(--color-border)] rounded animate-pulse mb-2"
-								/>
-								{[...Array(3)].map((_, j) => (
-									<div
-										key={j}
-										data-testid="skeleton-row"
-										className="h-20 bg-[var(--color-surface)] rounded-lg mb-2 animate-pulse"
-									/>
-								))}
-							</div>
-						))}
-					</div>
-				</div>
-			</div>
-		)
-	}
-
-	// Error state
-	if (error) {
-		return (
-			<div className="min-h-screen bg-[var(--color-background)]">
-				<div className="max-w-6xl mx-auto">
-					<div className="p-6 border-b border-[var(--color-border)]">
-						<h1 data-testid="transactions-header" className="text-2xl font-bold text-[var(--color-text)]">
-							Transactions
-						</h1>
-					</div>
-					<div data-testid="error-state" className="text-center py-12">
-						<p className="text-[var(--color-error)] mb-4">{error}</p>
-						<Button onClick={loadTransactions}>Tentar novamente</Button>
-					</div>
-				</div>
-			</div>
-		)
-	}
-
-	// Empty state
-	if (transactions.length === 0) {
-		return (
-			<div className="min-h-screen bg-[var(--color-background)]">
-				<div className="max-w-6xl mx-auto p-6">
-					<div data-testid="empty-state" className="text-center py-20">
-						<div
-							data-testid="empty-state-icon"
-							className="w-20 h-20 mx-auto mb-6 bg-[var(--color-surface)] rounded-full flex items-center justify-center text-4xl"
-						>
-							💸
+	// Render content based on state
+	const renderContent = () => {
+		// Loading skeleton
+		if (isLoading) {
+			return (
+				<div className="min-h-screen bg-[var(--color-background)]">
+					<div className="max-w-6xl mx-auto">
+						<div className="p-6 border-b border-[var(--color-border)]">
+							<h1 data-testid="transactions-header" className="text-2xl font-bold text-[var(--color-text)]">
+								Transactions
+							</h1>
 						</div>
-						<h3
-							data-testid="empty-state-title"
-							className="text-2xl font-bold text-[var(--color-text)] mb-2"
-						>
-							No transactions yet
-						</h3>
-						<p
-							data-testid="empty-state-description"
-							className="text-[var(--color-text-secondary)] mb-6"
-						>
-							Start tracking your finances by adding your first transaction
-						</p>
-						<Button onClick={handleAddTransaction} data-testid="empty-state-cta">
-							Add Transaction
-						</Button>
+						<div data-testid="transactions-skeleton" className="p-6 space-y-4">
+							{[...Array(5)].map((_, i) => (
+								<div key={i}>
+									<div
+										data-testid="skeleton-date-header"
+										className="h-6 w-32 bg-[var(--color-border)] rounded animate-pulse mb-2"
+									/>
+									{[...Array(3)].map((_, j) => (
+										<div
+											key={j}
+											data-testid="skeleton-row"
+											className="h-20 bg-[var(--color-surface)] rounded-lg mb-2 animate-pulse"
+										/>
+									))}
+								</div>
+							))}
+						</div>
 					</div>
 				</div>
+			)
+		}
 
-				{/* Transaction Modal - needed for empty state */}
-				<TransactionModal
-					isOpen={isModalOpen}
-					onClose={() => setIsModalOpen(false)}
-					onSave={handleSaveTransaction}
-					transaction={selectedTransaction}
-					categoryOptions={categoryOptions}
-				/>
-			</div>
-		)
-	}
+		// Error state
+		if (error) {
+			return (
+				<div className="min-h-screen bg-[var(--color-background)]">
+					<div className="max-w-6xl mx-auto">
+						<div className="p-6 border-b border-[var(--color-border)]">
+							<h1 data-testid="transactions-header" className="text-2xl font-bold text-[var(--color-text)]">
+								Transactions
+							</h1>
+						</div>
+						<div data-testid="error-state" className="text-center py-12">
+							<p className="text-[var(--color-error)] mb-4">{error}</p>
+							<Button onClick={loadTransactions}>Tentar novamente</Button>
+						</div>
+					</div>
+				</div>
+			)
+		}
 
-	// Filter empty state
-	if (filteredTransactions.length === 0) {
+		// Empty state
+		if (transactions.length === 0) {
+			return (
+				<div className="min-h-screen bg-[var(--color-background)]">
+					<div className="max-w-6xl mx-auto">
+						{/* Header - same as normal state for consistency */}
+						<div className="p-6 border-b border-[var(--color-border)]">
+							<div className="flex items-center justify-between">
+								<h1 data-testid="transactions-header" className="text-2xl font-bold text-[var(--color-text)]">
+									Transactions
+								</h1>
+								<div className="flex gap-2">
+									<Button variant="outline" onClick={handleImport} data-testid="import-transactions-btn">
+										Import
+									</Button>
+									<Button onClick={handleAddTransaction} data-testid="add-transaction-btn">
+										+ Add Transaction
+									</Button>
+								</div>
+							</div>
+						</div>
+
+						{/* Empty state content */}
+						<div data-testid="empty-state" className="text-center py-20">
+							<div
+								data-testid="empty-state-icon"
+								className="w-20 h-20 mx-auto mb-6 bg-[var(--color-surface)] rounded-full flex items-center justify-center text-4xl"
+							>
+								💸
+							</div>
+							<h3
+								data-testid="empty-state-title"
+								className="text-2xl font-bold text-[var(--color-text)] mb-2"
+							>
+								No transactions yet
+							</h3>
+							<p
+								data-testid="empty-state-description"
+								className="text-[var(--color-text-secondary)] mb-6"
+							>
+								Start tracking your finances by adding your first transaction or importing from a file
+							</p>
+							<p className="text-[var(--color-text-secondary)] text-sm">
+								Use the buttons above to get started
+							</p>
+						</div>
+					</div>
+				</div>
+			)
+		}
+
+		// Filter empty state
+		if (filteredTransactions.length === 0) {
+			return (
+				<div className="min-h-screen bg-[var(--color-background)]">
+					<div className="max-w-6xl mx-auto">
+						{/* Header */}
+						<div className="p-6 border-b border-[var(--color-border)]">
+							<div className="flex items-center justify-between mb-4">
+								<div>
+									<h1 data-testid="transactions-header" className="text-2xl font-bold text-[var(--color-text)]">
+										Transactions
+									</h1>
+									<p data-testid="transactions-count" className="text-[var(--color-text-secondary)]">
+										{transactions.length} total transactions
+									</p>
+								</div>
+								<Button onClick={handleAddTransaction} data-testid="add-transaction-btn">
+									+ Add Transaction
+								</Button>
+							</div>
+						</div>
+
+						{/* Filters */}
+						<FilterBar
+							filters={filters}
+							onFiltersChange={setFilters}
+							categoryOptions={categoryOptions}
+						/>
+
+						{/* Filter Empty State */}
+						<div data-testid="filter-empty-state" className="text-center py-20">
+							<div className="text-4xl mb-4">🔍</div>
+							<h3
+								data-testid="filter-empty-state-title"
+								className="text-xl font-bold text-[var(--color-text)] mb-2"
+							>
+								No transactions found
+							</h3>
+							<p
+								data-testid="filter-empty-state-description"
+								className="text-[var(--color-text-secondary)] mb-4"
+							>
+								Try adjusting your filters to see more results
+							</p>
+							<Button
+								variant="outline"
+								onClick={() => setFilters({ search: '', startDate: '', endDate: '', categoryId: '', type: 'all' })}
+								data-testid="filter-empty-state-clear"
+							>
+								Clear Filters
+							</Button>
+						</div>
+					</div>
+				</div>
+			)
+		}
+
+		// Normal state with transactions
 		return (
 			<div className="min-h-screen bg-[var(--color-background)]">
 				<div className="max-w-6xl mx-auto">
 					{/* Header */}
-					<div className="p-6 border-b border-[var(--color-border)]">
+					<div data-testid="transactions-header-container" className="p-6 bg-[var(--color-surface)] border-b border-[var(--color-border)]">
 						<div className="flex items-center justify-between mb-4">
 							<div>
 								<h1 data-testid="transactions-header" className="text-2xl font-bold text-[var(--color-text)]">
 									Transactions
 								</h1>
 								<p data-testid="transactions-count" className="text-[var(--color-text-secondary)]">
-									{transactions.length} total transactions
+									{filteredTransactions.length} transactions
 								</p>
 							</div>
-							<Button onClick={handleAddTransaction} data-testid="add-transaction-btn">
-								+ Add Transaction
-							</Button>
+							<div className="flex gap-2">
+								<Button variant="outline" onClick={handleImport} data-testid="import-transactions-btn">
+									Import
+								</Button>
+								<Button onClick={handleAddTransaction} data-testid="add-transaction-btn">
+									+ Add Transaction
+								</Button>
+							</div>
+						</div>
+
+						{/* Summary */}
+						<div data-testid="total-summary" className="grid grid-cols-3 gap-4 mt-4">
+							<div className="p-4 bg-[var(--color-success-50)] rounded-lg">
+								<p className="text-sm text-[var(--color-text-secondary)] mb-1">Income</p>
+								<p data-testid="income-total" className="text-xl font-bold text-[var(--color-success)]">
+									{formatCurrency(summary.income)}
+								</p>
+							</div>
+							<div className="p-4 bg-[var(--color-error-50)] rounded-lg">
+								<p className="text-sm text-[var(--color-text-secondary)] mb-1">Expense</p>
+								<p data-testid="expense-total" className="text-xl font-bold text-[var(--color-error)]">
+									{formatCurrency(summary.expense)}
+								</p>
+							</div>
+							<div className="p-4 bg-[var(--color-primary-50)] rounded-lg">
+								<p className="text-sm text-[var(--color-text-secondary)] mb-1">Net</p>
+								<p
+									data-testid="net-total"
+									className={`text-xl font-bold ${summary.net >= 0 ? 'text-[var(--color-success)]' : 'text-[var(--color-error)]'}`}
+								>
+									{formatCurrency(summary.net)}
+								</p>
+							</div>
 						</div>
 					</div>
 
@@ -428,177 +552,92 @@ export function TransactionsScreen() {
 						categoryOptions={categoryOptions}
 					/>
 
-					{/* Filter Empty State */}
-					<div data-testid="filter-empty-state" className="text-center py-20">
-						<div className="text-4xl mb-4">🔍</div>
-						<h3
-							data-testid="filter-empty-state-title"
-							className="text-xl font-bold text-[var(--color-text)] mb-2"
+					{/* Bulk Actions Bar */}
+					{selectedIds.size > 0 && (
+						<div
+							data-testid="bulk-actions-bar"
+							className="p-4 bg-[var(--color-primary-50)] border-b border-[var(--color-primary-100)] flex items-center justify-between"
 						>
-							No transactions found
-						</h3>
-						<p
-							data-testid="filter-empty-state-description"
-							className="text-[var(--color-text-secondary)] mb-4"
-						>
-							Try adjusting your filters to see more results
-						</p>
-						<Button
-							variant="outline"
-							onClick={() => setFilters({ search: '', startDate: '', endDate: '', categoryId: '', type: 'all' })}
-							data-testid="filter-empty-state-clear"
-						>
-							Clear Filters
-						</Button>
+							<div className="flex items-center gap-4">
+								<span data-testid="bulk-selected-count" className="font-medium text-[var(--color-text)]">
+									{selectedIds.size} selected
+								</span>
+								<Button variant="outline" size="sm" onClick={handleClearSelection} data-testid="bulk-clear-selection">
+									Clear
+								</Button>
+							</div>
+							<div className="flex gap-2">
+								<Button variant="outline" size="sm" onClick={handleBulkCategorize} data-testid="bulk-edit-category-btn">
+									Change Category
+								</Button>
+								<Button variant="outline" size="sm" data-testid="bulk-export-btn">
+									Export
+								</Button>
+								<Button variant="outline" size="sm" onClick={handleBulkDelete} data-testid="bulk-delete-btn">
+									Delete
+								</Button>
+							</div>
+						</div>
+					)}
+
+					{/* Transactions List */}
+					<div data-testid="transactions-list-container" className="bg-[var(--color-surface)]">
+						{/* Select All */}
+						<div className="p-4 border-b border-[var(--color-border)] flex items-center gap-3">
+							<input
+								type="checkbox"
+								checked={selectedIds.size === filteredTransactions.length && filteredTransactions.length > 0}
+								onChange={handleSelectAll}
+								data-testid="select-all-transactions"
+								className="w-4 h-4 rounded border-[var(--color-border)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
+							/>
+							<span className="text-sm font-medium text-[var(--color-text-secondary)]">
+								Select All
+							</span>
+						</div>
+
+						{/* Grouped Transactions */}
+						{groupedTransactions.map(group => (
+							<div key={group.date} data-testid="transaction-date-group" className="border-b border-[var(--color-border)] last:border-b-0">
+								{/* Date Header */}
+								<div className="p-4 bg-[var(--color-surface)] flex items-center justify-between">
+									<h3 data-testid="transaction-date-header" className="font-semibold text-[var(--color-text)]">
+										{group.date}
+									</h3>
+									<span
+										data-testid="daily-total"
+										className={`font-semibold ${group.total >= 0 ? 'text-[var(--color-success)]' : 'text-[var(--color-error)]'}`}
+									>
+										{formatCurrency(group.total)}
+									</span>
+								</div>
+
+								{/* Transactions */}
+								{group.transactions.map(transaction => (
+									<TransactionRow
+										key={transaction.id}
+										transaction={transaction}
+										isSelected={selectedIds.has(transaction.id)}
+										onSelect={handleSelect}
+										onEdit={handleEditTransaction}
+										onDelete={handleDeleteTransaction}
+									/>
+								))}
+							</div>
+						))}
 					</div>
 				</div>
-
-				{/* Transaction Modal - needed for filter empty state */}
-				<TransactionModal
-					isOpen={isModalOpen}
-					onClose={() => setIsModalOpen(false)}
-					onSave={handleSaveTransaction}
-					transaction={selectedTransaction}
-					categoryOptions={categoryOptions}
-				/>
 			</div>
 		)
 	}
 
+	// Single return with all modals rendered outside conditional content
+	// This prevents ImportWizard from remounting when content changes
 	return (
-		<div className="min-h-screen bg-[var(--color-background)]">
-			<div className="max-w-6xl mx-auto">
-				{/* Header */}
-				<div data-testid="transactions-header-container" className="p-6 bg-[var(--color-surface)] border-b border-[var(--color-border)]">
-					<div className="flex items-center justify-between mb-4">
-						<div>
-							<h1 data-testid="transactions-header" className="text-2xl font-bold text-[var(--color-text)]">
-								Transactions
-							</h1>
-							<p data-testid="transactions-count" className="text-[var(--color-text-secondary)]">
-								{filteredTransactions.length} transactions
-							</p>
-						</div>
-						<div className="flex gap-2">
-							<Button variant="outline" onClick={handleImport} data-testid="import-transactions-btn">
-								Import
-							</Button>
-							<Button onClick={handleAddTransaction} data-testid="add-transaction-btn">
-								+ Add Transaction
-							</Button>
-						</div>
-					</div>
+		<>
+			{renderContent()}
 
-					{/* Summary */}
-					<div data-testid="total-summary" className="grid grid-cols-3 gap-4 mt-4">
-						<div className="p-4 bg-[var(--color-success-50)] rounded-lg">
-							<p className="text-sm text-[var(--color-text-secondary)] mb-1">Income</p>
-							<p data-testid="income-total" className="text-xl font-bold text-[var(--color-success)]">
-								{formatCurrency(summary.income)}
-							</p>
-						</div>
-						<div className="p-4 bg-[var(--color-error-50)] rounded-lg">
-							<p className="text-sm text-[var(--color-text-secondary)] mb-1">Expense</p>
-							<p data-testid="expense-total" className="text-xl font-bold text-[var(--color-error)]">
-								{formatCurrency(summary.expense)}
-							</p>
-						</div>
-						<div className="p-4 bg-[var(--color-primary-50)] rounded-lg">
-							<p className="text-sm text-[var(--color-text-secondary)] mb-1">Net</p>
-							<p
-								data-testid="net-total"
-								className={`text-xl font-bold ${summary.net >= 0 ? 'text-[var(--color-success)]' : 'text-[var(--color-error)]'}`}
-							>
-								{formatCurrency(summary.net)}
-							</p>
-						</div>
-					</div>
-				</div>
-
-				{/* Filters */}
-				<FilterBar
-					filters={filters}
-					onFiltersChange={setFilters}
-					categoryOptions={categoryOptions}
-				/>
-
-				{/* Bulk Actions Bar */}
-				{selectedIds.size > 0 && (
-					<div
-						data-testid="bulk-actions-bar"
-						className="p-4 bg-[var(--color-primary-50)] border-b border-[var(--color-primary-100)] flex items-center justify-between"
-					>
-						<div className="flex items-center gap-4">
-							<span data-testid="bulk-selected-count" className="font-medium text-[var(--color-text)]">
-								{selectedIds.size} selected
-							</span>
-							<Button variant="outline" size="sm" onClick={handleClearSelection} data-testid="bulk-clear-selection">
-								Clear
-							</Button>
-						</div>
-						<div className="flex gap-2">
-							<Button variant="outline" size="sm" onClick={handleBulkCategorize} data-testid="bulk-edit-category-btn">
-								Change Category
-							</Button>
-							<Button variant="outline" size="sm" data-testid="bulk-export-btn">
-								Export
-							</Button>
-							<Button variant="outline" size="sm" onClick={handleBulkDelete} data-testid="bulk-delete-btn">
-								Delete
-							</Button>
-						</div>
-					</div>
-				)}
-
-				{/* Transactions List */}
-				<div data-testid="transactions-list-container" className="bg-[var(--color-surface)]">
-					{/* Select All */}
-					<div className="p-4 border-b border-[var(--color-border)] flex items-center gap-3">
-						<input
-							type="checkbox"
-							checked={selectedIds.size === filteredTransactions.length && filteredTransactions.length > 0}
-							onChange={handleSelectAll}
-							data-testid="select-all-transactions"
-							className="w-4 h-4 rounded border-[var(--color-border)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
-						/>
-						<span className="text-sm font-medium text-[var(--color-text-secondary)]">
-							Select All
-						</span>
-					</div>
-
-					{/* Grouped Transactions */}
-					{groupedTransactions.map(group => (
-						<div key={group.date} data-testid="transaction-date-group" className="border-b border-[var(--color-border)] last:border-b-0">
-							{/* Date Header */}
-							<div className="p-4 bg-[var(--color-surface)] flex items-center justify-between">
-								<h3 data-testid="transaction-date-header" className="font-semibold text-[var(--color-text)]">
-									{group.date}
-								</h3>
-								<span
-									data-testid="daily-total"
-									className={`font-semibold ${group.total >= 0 ? 'text-[var(--color-success)]' : 'text-[var(--color-error)]'}`}
-								>
-									{formatCurrency(group.total)}
-								</span>
-							</div>
-
-							{/* Transactions */}
-							{group.transactions.map(transaction => (
-								<TransactionRow
-									key={transaction.id}
-									transaction={transaction}
-									isSelected={selectedIds.has(transaction.id)}
-									onSelect={handleSelect}
-									onEdit={handleEditTransaction}
-									onDelete={handleDeleteTransaction}
-								/>
-							))}
-						</div>
-					))}
-				</div>
-			</div>
-
-			{/* Transaction Modal */}
+			{/* Transaction Modal - always rendered, visibility controlled by isOpen */}
 			<TransactionModal
 				isOpen={isModalOpen}
 				onClose={() => setIsModalOpen(false)}
@@ -607,10 +646,11 @@ export function TransactionsScreen() {
 				categoryOptions={categoryOptions}
 			/>
 
-			{/* Import Wizard Modal */}
+			{/* Import Wizard - SINGLE INSTANCE, always rendered outside conditional content */}
+			{/* This prevents the modal from remounting when transitioning from empty to normal state */}
 			<ImportWizard
 				isOpen={isImportModalOpen}
-				onClose={() => setIsImportModalOpen(false)}
+				onClose={handleImportClose}
 				onImport={handleImportComplete}
 				categoryOptions={categoryOptions}
 			/>
@@ -668,7 +708,7 @@ export function TransactionsScreen() {
 				categoryOptions={categoryOptions}
 				selectedTransactionDescriptions={selectedTransactionDescriptions}
 			/>
-		</div>
+		</>
 	)
 }
 
