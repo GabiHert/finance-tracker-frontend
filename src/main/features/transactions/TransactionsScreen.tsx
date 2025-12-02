@@ -314,8 +314,23 @@ export function TransactionsScreen() {
 
 		// Create all imported transactions via API
 		for (const txn of txns) {
+			let apiDate: string
+
+			// Handle multiple date formats
+			if (txn.date.includes('/')) {
+				// DD/MM/YYYY format - convert to YYYY-MM-DD
+				const [day, month, year] = txn.date.split('/')
+				apiDate = `${year}-${month}-${day}`
+			} else if (txn.date.includes('-')) {
+				// Already in YYYY-MM-DD format (or similar)
+				apiDate = txn.date
+			} else {
+				// Fallback: use as-is
+				apiDate = txn.date
+			}
+
 			await createTransaction({
-				date: txn.date,
+				date: apiDate,
 				description: txn.description,
 				amount: txn.amount,
 				type: txn.type,

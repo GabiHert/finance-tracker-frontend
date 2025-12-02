@@ -512,6 +512,13 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 						Assign categories to your transactions:
 					</p>
 
+					{/* Error Message */}
+					{error && (
+						<div data-testid="import-error-message" className="mb-4 p-3 bg-[var(--color-error-50)] border border-[var(--color-error-200)] rounded-lg text-[var(--color-error)]">
+							{error}
+						</div>
+					)}
+
 					<div className="border border-[var(--color-border)] rounded-lg overflow-hidden max-h-96 overflow-y-auto">
 						<table className="w-full">
 							<thead className="bg-[var(--color-surface)] sticky top-0">
