@@ -67,7 +67,22 @@ export function formatPercentage(value: number): string {
 }
 
 export function formatDate(dateString: string): string {
-	const date = new Date(dateString)
+	let date: Date
+
+	// Handle DD/MM/YYYY format (Brazilian date format)
+	if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateString)) {
+		const [day, month, year] = dateString.split('/')
+		date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+	} else {
+		// Handle YYYY-MM-DD format (ISO format)
+		date = new Date(dateString)
+	}
+
+	// Check for invalid date
+	if (isNaN(date.getTime())) {
+		return dateString // Return original string if parsing fails
+	}
+
 	return new Intl.DateTimeFormat('pt-BR', {
 		day: '2-digit',
 		month: 'short',
