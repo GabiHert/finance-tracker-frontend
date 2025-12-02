@@ -76,6 +76,7 @@ function TrashIcon() {
 export function GoalCard({ goal, onEdit, onDelete }: GoalCardProps) {
 	const progress = calculateProgress(goal.currentAmount, goal.limitAmount)
 	const overLimit = isOverLimit(goal.currentAmount, goal.limitAmount)
+	const isWarning = progress >= 80 && progress < 100
 
 	return (
 		<div
@@ -83,6 +84,7 @@ export function GoalCard({ goal, onEdit, onDelete }: GoalCardProps) {
 			className={`
 				p-4 bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)]
 				${overLimit ? 'over-limit animate-pulse ring-2 ring-red-500 ring-opacity-50' : ''}
+				${isWarning ? 'warning ring-2 ring-yellow-500 ring-opacity-50' : ''}
 			`}
 		>
 			<div className="flex items-start justify-between mb-4">
@@ -135,12 +137,17 @@ export function GoalCard({ goal, onEdit, onDelete }: GoalCardProps) {
 			<div className="flex items-center justify-between">
 				<span
 					data-testid="goal-progress-percent"
-					className={`text-sm font-medium ${overLimit ? 'text-red-500' : 'text-green-500'}`}
+					className={`text-sm font-medium ${overLimit ? 'text-red-500' : isWarning ? 'text-yellow-500' : 'text-green-500'}`}
 				>
 					{progress}%
 				</span>
+				{isWarning && (
+					<span data-testid="warning-indicator" className="text-xs text-yellow-500 font-medium">
+						Aproximando do limite!
+					</span>
+				)}
 				{overLimit && (
-					<span className="text-xs text-red-500 font-medium">
+					<span data-testid="over-limit-indicator" className="text-xs text-red-500 font-medium">
 						Limite excedido!
 					</span>
 				)}

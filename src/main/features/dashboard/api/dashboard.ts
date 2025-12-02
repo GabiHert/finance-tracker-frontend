@@ -1,4 +1,5 @@
 import { fetchTransactions, type FetchTransactionsResult } from '@main/features/transactions/api/transactions'
+import { fetchGoals } from '@main/features/goals/api/goals'
 import type {
 	DashboardSummary,
 	CategoryBreakdown,
@@ -264,11 +265,55 @@ export async function fetchDashboardData(period: Period): Promise<DashboardData>
 			categoryIcon: txn.categoryIcon || 'folder',
 		}))
 
-	// Goals progress - empty for now (no goals API yet)
-	const goalsProgress: GoalProgress[] = []
-
-	// Alerts - empty for now (will be populated when goals are over limit)
+	// Goals progress - fetch from goals API
+	let goalsProgress: GoalProgress[] = []
 	const alerts: DashboardAlert[] = []
+
+	try {
+		const goals = await fetchGoals()
+		goalsProgress = goals.map((goal) => {
+			const percentage = goal.limitAmount > 0 ? (goal.currentAmount / goal.limitAmount) * 100 : 0
+			return {
+				id: goal.id,
+				categoryId: goal.categoryId,
+				categoryName: goal.categoryName,
+				categoryColor: goal.categoryColor,
+				categoryIcon: goal.categoryIcon,
+				limitAmount: goal.limitAmount,
+				currentAmount: goal.currentAmount,
+				percentage: Math.min(percentage, 100),
+			}
+		})
+
+		// Generate alerts for goals over limit or approaching limit (80%+)
+		for (const goal of goals) {
+			const percentage = goal.limitAmount > 0 ? (goal.currentAmount / goal.limitAmount) * 100 : 0
+
+			if (percentage >= 100) {
+				// Over limit alert
+				alerts.push({
+					id: `alert-${goal.id}`,
+					type: 'goal_exceeded',
+					severity: 'danger',
+					message: `Limite excedido em ${goal.categoryName}: R$ ${goal.currentAmount.toFixed(2)} de R$ ${goal.limitAmount.toFixed(2)}`,
+					goalId: goal.id,
+					categoryId: goal.categoryId,
+				})
+			} else if (percentage >= 80) {
+				// Warning alert (approaching limit)
+				alerts.push({
+					id: `alert-${goal.id}`,
+					type: 'goal_warning',
+					severity: 'warning',
+					message: `Aproximando do limite em ${goal.categoryName}: ${percentage.toFixed(0)}% utilizado`,
+					goalId: goal.id,
+					categoryId: goal.categoryId,
+				})
+			}
+		}
+	} catch (error) {
+		console.error('Error fetching goals for dashboard:', error)
+	}
 
 	return {
 		summary,

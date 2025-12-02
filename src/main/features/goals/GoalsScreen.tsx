@@ -1,16 +1,42 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@main/components/ui/Button'
 import { Modal } from '@main/components/ui/Modal'
 import { GoalCard } from './components/GoalCard'
 import { GoalModal } from './GoalModal'
-import { mockGoals, mockCategories } from './mock-data'
+import { fetchGoals, fetchCategories, createGoal, updateGoal, deleteGoal as deleteGoalApi } from './api'
 import type { Goal, CreateGoalInput } from './types'
+import type { Category } from '@main/features/categories/types'
 
 export function GoalsScreen() {
-	const [goals, setGoals] = useState<Goal[]>(mockGoals)
+	const [goals, setGoals] = useState<Goal[]>([])
+	const [categories, setCategories] = useState<Category[]>([])
+	const [isLoading, setIsLoading] = useState(true)
+	const [error, setError] = useState<string | null>(null)
 	const [isModalOpen, setIsModalOpen] = useState(false)
 	const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null)
-	const [deleteGoal, setDeleteGoal] = useState<Goal | null>(null)
+	const [goalToDelete, setGoalToDelete] = useState<Goal | null>(null)
+
+	const loadData = useCallback(async () => {
+		try {
+			setIsLoading(true)
+			setError(null)
+			const [goalsData, categoriesData] = await Promise.all([
+				fetchGoals(),
+				fetchCategories(),
+			])
+			setGoals(goalsData)
+			setCategories(categoriesData)
+		} catch (err) {
+			setError('Erro ao carregar limites de gastos')
+			console.error(err)
+		} finally {
+			setIsLoading(false)
+		}
+	}, [])
+
+	useEffect(() => {
+		loadData()
+	}, [loadData])
 
 	const handleAddGoal = () => {
 		setSelectedGoal(null)
@@ -23,13 +49,18 @@ export function GoalsScreen() {
 	}
 
 	const handleDeleteGoal = (goal: Goal) => {
-		setDeleteGoal(goal)
+		setGoalToDelete(goal)
 	}
 
-	const handleConfirmDelete = () => {
-		if (deleteGoal) {
-			setGoals(goals.filter(g => g.id !== deleteGoal.id))
-			setDeleteGoal(null)
+	const handleConfirmDelete = async () => {
+		if (goalToDelete) {
+			try {
+				await deleteGoalApi(goalToDelete.id)
+				setGoals(goals.filter(g => g.id !== goalToDelete.id))
+				setGoalToDelete(null)
+			} catch (err) {
+				console.error('Error deleting goal:', err)
+			}
 		}
 	}
 
@@ -38,45 +69,48 @@ export function GoalsScreen() {
 		setSelectedGoal(null)
 	}
 
-	const handleSaveGoal = (data: CreateGoalInput) => {
-		const category = mockCategories.find(c => c.id === data.categoryId)
-
-		if (selectedGoal) {
-			// Update existing goal
-			setGoals(goals.map(g =>
-				g.id === selectedGoal.id
-					? {
-						...g,
-						categoryId: data.categoryId,
-						categoryName: category?.name || g.categoryName,
-						categoryColor: category?.color || g.categoryColor,
-						categoryIcon: category?.icon || g.categoryIcon,
-						limitAmount: data.limitAmount,
-						alertOnExceed: data.alertOnExceed ?? g.alertOnExceed,
-						updatedAt: new Date().toISOString(),
-					}
-					: g
-			))
-		} else {
-			// Create new goal
-			const newGoal: Goal = {
-				id: `goal-${Date.now()}`,
-				categoryId: data.categoryId,
-				categoryName: category?.name || 'Categoria',
-				categoryIcon: category?.icon || 'tag',
-				categoryColor: category?.color || '#6B7280',
-				limitAmount: data.limitAmount,
-				currentAmount: 0,
-				alertOnExceed: data.alertOnExceed ?? true,
-				period: 'monthly',
-				startDate: new Date().toISOString().split('T')[0],
-				endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0],
-				createdAt: new Date().toISOString(),
-				updatedAt: new Date().toISOString(),
+	const handleSaveGoal = async (data: CreateGoalInput) => {
+		try {
+			if (selectedGoal) {
+				const updated = await updateGoal(selectedGoal.id, {
+					categoryId: data.categoryId,
+					limitAmount: data.limitAmount,
+					alertOnExceed: data.alertOnExceed,
+				}, categories)
+				setGoals(goals.map(g => g.id === selectedGoal.id ? updated : g))
+			} else {
+				const created = await createGoal(data, categories)
+				setGoals([...goals, created])
 			}
-			setGoals([...goals, newGoal])
+			handleCloseModal()
+		} catch (err) {
+			console.error('Error saving goal:', err)
 		}
-		handleCloseModal()
+	}
+
+	if (isLoading) {
+		return (
+			<div data-testid="goals-screen" className="min-h-screen p-6 bg-[var(--color-background)]">
+				<div className="max-w-4xl mx-auto">
+					<div className="flex items-center justify-center py-12">
+						<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-primary)]"></div>
+					</div>
+				</div>
+			</div>
+		)
+	}
+
+	if (error) {
+		return (
+			<div data-testid="goals-screen" className="min-h-screen p-6 bg-[var(--color-background)]">
+				<div className="max-w-4xl mx-auto">
+					<div className="text-center py-12">
+						<p className="text-red-500 mb-4">{error}</p>
+						<Button onClick={loadData}>Tentar novamente</Button>
+					</div>
+				</div>
+			</div>
+		)
 	}
 
 	return (
@@ -142,17 +176,18 @@ export function GoalsScreen() {
 				onClose={handleCloseModal}
 				onSave={handleSaveGoal}
 				goal={selectedGoal}
+				categories={categories}
 			/>
 
 			<Modal
-				isOpen={!!deleteGoal}
-				onClose={() => setDeleteGoal(null)}
+				isOpen={!!goalToDelete}
+				onClose={() => setGoalToDelete(null)}
 				title="Excluir Limite"
 				size="sm"
 				data-testid="confirm-delete-dialog"
 				footer={
 					<>
-						<Button variant="secondary" onClick={() => setDeleteGoal(null)}>
+						<Button variant="secondary" onClick={() => setGoalToDelete(null)}>
 							Cancelar
 						</Button>
 						<Button

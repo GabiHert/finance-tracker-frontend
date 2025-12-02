@@ -1,17 +1,18 @@
 import { useState, useEffect } from 'react'
 import { Modal } from '@main/components/ui/Modal'
 import { Button } from '@main/components/ui/Button'
-import { mockCategories } from './mock-data'
 import type { Goal, CreateGoalInput } from './types'
+import type { Category } from '@main/features/categories/types'
 
 interface GoalModalProps {
 	isOpen: boolean
 	onClose: () => void
 	onSave: (data: CreateGoalInput) => void
 	goal?: Goal | null
+	categories: Category[]
 }
 
-export function GoalModal({ isOpen, onClose, onSave, goal }: GoalModalProps) {
+export function GoalModal({ isOpen, onClose, onSave, goal, categories }: GoalModalProps) {
 	const [categoryId, setCategoryId] = useState('')
 	const [limitAmount, setLimitAmount] = useState('')
 	const [alertOnExceed, setAlertOnExceed] = useState(true)
@@ -31,7 +32,7 @@ export function GoalModal({ isOpen, onClose, onSave, goal }: GoalModalProps) {
 		setError(null)
 	}, [goal, isOpen])
 
-	const selectedCategory = mockCategories.find(c => c.id === categoryId)
+	const selectedCategory = categories.find(c => c.id === categoryId)
 
 	const handleSave = () => {
 		if (!limitAmount || parseFloat(limitAmount) <= 0) {
@@ -124,7 +125,7 @@ export function GoalModal({ isOpen, onClose, onSave, goal }: GoalModalProps) {
 								role="listbox"
 								className="absolute z-10 w-full mt-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg shadow-lg max-h-60 overflow-auto"
 							>
-								{mockCategories.map((category) => (
+								{categories.map((category) => (
 									<div
 										key={category.id}
 										role="option"
