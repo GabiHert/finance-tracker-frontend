@@ -166,6 +166,14 @@
     --color-error: var(--color-error-400);
     --color-info: var(--color-info-400);
 
+    /* Dark mode variants for -50 colors (used as card backgrounds) */
+    --color-primary-50: rgba(59, 130, 246, 0.1);
+    --color-secondary-50: rgba(99, 102, 241, 0.1);
+    --color-success-50: rgba(16, 185, 129, 0.1);
+    --color-error-50: rgba(239, 68, 68, 0.1);
+    --color-warning-50: rgba(245, 158, 11, 0.1);
+    --color-info-50: rgba(6, 182, 212, 0.1);
+
     /* Adjusted shadows for dark mode */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
     --shadow-default: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);

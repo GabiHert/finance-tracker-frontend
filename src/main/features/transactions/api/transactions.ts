@@ -1,6 +1,5 @@
 import type { Transaction, TransactionFormData } from '../types'
-
-const API_BASE = '/api/v1'
+import { API_BASE, authenticatedFetch } from '@main/lib'
 
 // API Response types
 export interface TransactionCategoryResponse {
@@ -67,11 +66,6 @@ function transformTransaction(apiTxn: TransactionApiResponse): Transaction {
 	}
 }
 
-function getAuthHeader(): Record<string, string> {
-	const token = localStorage.getItem('access_token')
-	return token ? { Authorization: `Bearer ${token}` } : {}
-}
-
 export interface FetchTransactionsParams {
 	page?: number
 	limit?: number
@@ -106,13 +100,7 @@ export async function fetchTransactions(params: FetchTransactionsParams = {}): P
 	const queryString = queryParams.toString()
 	const url = `${API_BASE}/transactions${queryString ? `?${queryString}` : ''}`
 
-	const response = await fetch(url, {
-		method: 'GET',
-		headers: {
-			'Content-Type': 'application/json',
-			...getAuthHeader(),
-		},
-	})
+	const response = await authenticatedFetch(url, { method: 'GET' })
 
 	if (!response.ok) {
 		throw new Error('Erro ao carregar transacoes')
@@ -141,12 +129,8 @@ export interface CreateTransactionInput {
 }
 
 export async function createTransaction(input: CreateTransactionInput): Promise<Transaction> {
-	const response = await fetch(`${API_BASE}/transactions`, {
+	const response = await authenticatedFetch(`${API_BASE}/transactions`, {
 		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-			...getAuthHeader(),
-		},
 		body: JSON.stringify({
 			date: input.date,
 			description: input.description,
@@ -178,12 +162,8 @@ export async function updateTransaction(
 	if (input.categoryId !== undefined) body.category_id = input.categoryId || null
 	if (input.notes !== undefined) body.notes = input.notes
 
-	const response = await fetch(`${API_BASE}/transactions/${id}`, {
+	const response = await authenticatedFetch(`${API_BASE}/transactions/${id}`, {
 		method: 'PATCH',
-		headers: {
-			'Content-Type': 'application/json',
-			...getAuthHeader(),
-		},
 		body: JSON.stringify(body),
 	})
 
@@ -197,12 +177,8 @@ export async function updateTransaction(
 }
 
 export async function deleteTransaction(id: string): Promise<void> {
-	const response = await fetch(`${API_BASE}/transactions/${id}`, {
+	const response = await authenticatedFetch(`${API_BASE}/transactions/${id}`, {
 		method: 'DELETE',
-		headers: {
-			'Content-Type': 'application/json',
-			...getAuthHeader(),
-		},
 	})
 
 	if (!response.ok) {
@@ -212,12 +188,8 @@ export async function deleteTransaction(id: string): Promise<void> {
 }
 
 export async function bulkDeleteTransactions(ids: string[]): Promise<number> {
-	const response = await fetch(`${API_BASE}/transactions/bulk-delete`, {
+	const response = await authenticatedFetch(`${API_BASE}/transactions/bulk-delete`, {
 		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-			...getAuthHeader(),
-		},
 		body: JSON.stringify({ ids }),
 	})
 
@@ -231,12 +203,8 @@ export async function bulkDeleteTransactions(ids: string[]): Promise<number> {
 }
 
 export async function bulkCategorizeTransactions(ids: string[], categoryId: string): Promise<number> {
-	const response = await fetch(`${API_BASE}/transactions/bulk-categorize`, {
+	const response = await authenticatedFetch(`${API_BASE}/transactions/bulk-categorize`, {
 		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-			...getAuthHeader(),
-		},
 		body: JSON.stringify({ ids, category_id: categoryId }),
 	})
 

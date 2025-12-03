@@ -1,17 +1,37 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Button } from '@main/components/ui/Button'
 import { Modal } from '@main/components/ui/Modal'
 import { RuleRow } from './components/RuleRow'
 import { RuleModal } from './RuleModal'
-import { mockRules } from './mock-data'
+import { fetchRules, createRule, updateRule, deleteRule, reorderRules } from './api/rules'
 import type { CategoryRule, CreateRuleInput } from './types'
 
 export function RulesScreen() {
-	const [rules, setRules] = useState<CategoryRule[]>(mockRules)
+	const [rules, setRules] = useState<CategoryRule[]>([])
+	const [isLoading, setIsLoading] = useState(true)
+	const [error, setError] = useState<string | null>(null)
 	const [isModalOpen, setIsModalOpen] = useState(false)
 	const [selectedRule, setSelectedRule] = useState<CategoryRule | null>(null)
-	const [deleteRule, setDeleteRule] = useState<CategoryRule | null>(null)
+	const [deleteRuleTarget, setDeleteRuleTarget] = useState<CategoryRule | null>(null)
 	const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
+	const [isSaving, setIsSaving] = useState(false)
+
+	const loadRules = useCallback(async () => {
+		try {
+			setIsLoading(true)
+			setError(null)
+			const data = await fetchRules()
+			setRules(data)
+		} catch (err) {
+			setError(err instanceof Error ? err.message : 'Erro ao carregar regras')
+		} finally {
+			setIsLoading(false)
+		}
+	}, [])
+
+	useEffect(() => {
+		loadRules()
+	}, [loadRules])
 
 	const handleAddRule = () => {
 		setSelectedRule(null)
@@ -24,13 +44,21 @@ export function RulesScreen() {
 	}
 
 	const handleDeleteRule = (rule: CategoryRule) => {
-		setDeleteRule(rule)
+		setDeleteRuleTarget(rule)
 	}
 
-	const handleConfirmDelete = () => {
-		if (deleteRule) {
-			setRules(rules.filter(r => r.id !== deleteRule.id))
-			setDeleteRule(null)
+	const handleConfirmDelete = async () => {
+		if (!deleteRuleTarget) return
+
+		try {
+			setIsSaving(true)
+			await deleteRule(deleteRuleTarget.id)
+			setRules(rules.filter(r => r.id !== deleteRuleTarget.id))
+			setDeleteRuleTarget(null)
+		} catch (err) {
+			setError(err instanceof Error ? err.message : 'Erro ao excluir regra')
+		} finally {
+			setIsSaving(false)
 		}
 	}
 
@@ -39,36 +67,33 @@ export function RulesScreen() {
 		setSelectedRule(null)
 	}
 
-	const handleSaveRule = (data: CreateRuleInput) => {
-		if (selectedRule) {
-			// Update existing rule
-			setRules(rules.map(r =>
-				r.id === selectedRule.id
-					? { ...r, pattern: data.pattern, matchType: data.matchType, categoryId: data.categoryId }
-					: r
-			))
-		} else {
-			// Create new rule
-			const newRule: CategoryRule = {
-				id: `rule-${Date.now()}`,
-				pattern: data.pattern,
-				matchType: data.matchType,
-				categoryId: data.categoryId,
-				categoryName: 'Nova Categoria',
-				categoryIcon: 'tag',
-				categoryColor: '#6B7280',
-				priority: rules.length + 1,
-				isActive: true,
-				createdAt: new Date().toISOString(),
-				updatedAt: new Date().toISOString(),
+	const handleSaveRule = async (data: CreateRuleInput) => {
+		try {
+			setIsSaving(true)
+			if (selectedRule) {
+				const updated = await updateRule(selectedRule.id, data)
+				setRules(rules.map(r => r.id === selectedRule.id ? updated : r))
+			} else {
+				const newRule = await createRule({
+					...data,
+					priority: rules.length + 1,
+				})
+				setRules([...rules, newRule])
 			}
-			setRules([...rules, newRule])
+			handleCloseModal()
+		} catch (err) {
+			setError(err instanceof Error ? err.message : 'Erro ao salvar regra')
+		} finally {
+			setIsSaving(false)
 		}
-		handleCloseModal()
 	}
 
 	const handleDragStart = useCallback((index: number) => {
 		setDraggedIndex(index)
+	}, [])
+
+	const handleDragEnter = useCallback((e: React.DragEvent) => {
+		e.preventDefault()
 	}, [])
 
 	const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
@@ -80,19 +105,41 @@ export function RulesScreen() {
 		newRules.splice(draggedIndex, 1)
 		newRules.splice(index, 0, draggedRule)
 
-		// Update priorities
-		const updatedRules = newRules.map((rule, idx) => ({
-			...rule,
-			priority: idx + 1,
-		}))
-
-		setRules(updatedRules)
+		// Keep original priorities with rules - don't recalculate based on position
+		// Rules carry their priority numbers when reordered
+		setRules(newRules)
 		setDraggedIndex(index)
 	}, [draggedIndex, rules])
 
-	const handleDragEnd = useCallback(() => {
+	const handleDragEnd = useCallback(async () => {
 		setDraggedIndex(null)
-	}, [])
+
+		// Sync new order with backend
+		const order = rules.map((rule, idx) => ({
+			id: rule.id,
+			priority: rules.length - idx,
+		}))
+
+		try {
+			await reorderRules(order)
+		} catch (err) {
+			console.error('Failed to save rule order:', err)
+			loadRules() // Reload to get correct order
+		}
+	}, [rules, loadRules])
+
+	if (isLoading) {
+		return (
+			<div data-testid="rules-screen" className="min-h-screen p-6 bg-[var(--color-background)]">
+				<div className="max-w-4xl mx-auto">
+					<div className="text-center py-12">
+						<div className="animate-spin w-8 h-8 border-4 border-[var(--color-primary)] border-t-transparent rounded-full mx-auto" />
+						<p className="mt-4 text-[var(--color-text-secondary)]">Carregando regras...</p>
+					</div>
+				</div>
+			</div>
+		)
+	}
 
 	return (
 		<div data-testid="rules-screen" className="min-h-screen p-6 bg-[var(--color-background)]">
@@ -110,6 +157,15 @@ export function RulesScreen() {
 					Defina regras para categorizar automaticamente suas transacoes com base em padroes de texto.
 					As regras sao aplicadas em ordem de prioridade - arraste para reordenar.
 				</p>
+
+				{error && (
+					<div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+						{error}
+						<Button variant="secondary" size="sm" className="ml-4" onClick={loadRules}>
+							Tentar novamente
+						</Button>
+					</div>
+				)}
 
 				<div data-testid="rules-list" className="space-y-3">
 					{rules.length === 0 ? (
@@ -145,20 +201,17 @@ export function RulesScreen() {
 						</div>
 					) : (
 						rules.map((rule, index) => (
-							<div
+							<RuleRow
 								key={rule.id}
-								draggable
+								rule={rule}
+								onEdit={handleEditRule}
+								onDelete={handleDeleteRule}
+								isDragging={draggedIndex === index}
 								onDragStart={() => handleDragStart(index)}
+								onDragEnter={handleDragEnter}
 								onDragOver={(e) => handleDragOver(e, index)}
 								onDragEnd={handleDragEnd}
-							>
-								<RuleRow
-									rule={rule}
-									onEdit={handleEditRule}
-									onDelete={handleDeleteRule}
-									isDragging={draggedIndex === index}
-								/>
-							</div>
+							/>
 						))
 					)}
 				</div>
@@ -169,25 +222,27 @@ export function RulesScreen() {
 				onClose={handleCloseModal}
 				onSave={handleSaveRule}
 				rule={selectedRule}
+				isSaving={isSaving}
 			/>
 
 			<Modal
-				isOpen={!!deleteRule}
-				onClose={() => setDeleteRule(null)}
+				isOpen={!!deleteRuleTarget}
+				onClose={() => setDeleteRuleTarget(null)}
 				title="Excluir Regra"
 				size="sm"
 				data-testid="confirm-delete-dialog"
 				footer={
 					<>
-						<Button variant="secondary" onClick={() => setDeleteRule(null)}>
+						<Button variant="secondary" onClick={() => setDeleteRuleTarget(null)} disabled={isSaving}>
 							Cancelar
 						</Button>
 						<Button
 							data-testid="confirm-delete-btn"
 							variant="danger"
 							onClick={handleConfirmDelete}
+							disabled={isSaving}
 						>
-							Excluir
+							{isSaving ? 'Excluindo...' : 'Excluir'}
 						</Button>
 					</>
 				}

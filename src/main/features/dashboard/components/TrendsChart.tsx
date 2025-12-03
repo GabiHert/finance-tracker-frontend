@@ -5,6 +5,50 @@ interface TrendsChartProps {
 	data: TrendDataPoint[]
 }
 
+interface DateRange {
+	sameMonth: boolean
+	sameYear: boolean
+}
+
+const getDateRange = (data: TrendDataPoint[]): DateRange => {
+	if (data.length === 0) return { sameMonth: false, sameYear: false }
+
+	const dates = data.map((d) => new Date(d.date))
+	const months = new Set(dates.map((d) => d.getMonth()))
+	const years = new Set(dates.map((d) => d.getFullYear()))
+
+	return {
+		sameMonth: months.size === 1,
+		sameYear: years.size === 1,
+	}
+}
+
+const formatDateLabel = (dateString: string, dateRange: DateRange): string => {
+	const date = new Date(dateString)
+
+	// If all data is within the same month, show day numbers (e.g., "1", "5", "10", "15")
+	if (dateRange.sameMonth) {
+		return date.getDate().toString()
+	}
+
+	// If data spans multiple months but same year, show "day/month" (e.g., "5/out", "10/nov")
+	if (dateRange.sameYear) {
+		const day = date.getDate()
+		const month = new Intl.DateTimeFormat('pt-BR', { month: 'short' }).format(date)
+		return `${day}/${month}`
+	}
+
+	// Default: show month abbreviation
+	return new Intl.DateTimeFormat('pt-BR', { month: 'short' }).format(date)
+}
+
+const shouldShowLabel = (index: number, totalPoints: number): boolean => {
+	if (totalPoints <= 7) return true // Show all labels if 7 or fewer points
+	if (totalPoints <= 14) return index % 2 === 0 // Show every other label
+	if (totalPoints <= 31) return index % 3 === 0 || index === totalPoints - 1 // Show every 3rd + last
+	return index % 5 === 0 || index === totalPoints - 1 // Show every 5th + last
+}
+
 export function TrendsChart({ data }: TrendsChartProps) {
 	if (data.length === 0) {
 		return (
@@ -24,6 +68,7 @@ export function TrendsChart({ data }: TrendsChartProps) {
 	const chartHeight = 150
 	const chartWidth = 300
 	const padding = 20
+	const dateRange = getDateRange(data)
 
 	const getY = (value: number) => {
 		return chartHeight - padding - (value / maxValue) * (chartHeight - padding * 2)
@@ -35,11 +80,6 @@ export function TrendsChart({ data }: TrendsChartProps) {
 
 	const incomePath = data.map((d, i) => `${i === 0 ? 'M' : 'L'} ${getX(i)} ${getY(d.income)}`).join(' ')
 	const expensesPath = data.map((d, i) => `${i === 0 ? 'M' : 'L'} ${getX(i)} ${getY(d.expenses)}`).join(' ')
-
-	const formatMonth = (dateString: string) => {
-		const date = new Date(dateString)
-		return new Intl.DateTimeFormat('pt-BR', { month: 'short' }).format(date)
-	}
 
 	return (
 		<div
@@ -69,7 +109,7 @@ export function TrendsChart({ data }: TrendsChartProps) {
 						d={incomePath}
 						fill="none"
 						stroke="#10B981"
-						strokeWidth="2"
+						strokeWidth="1.5"
 						strokeLinecap="round"
 						strokeLinejoin="round"
 					/>
@@ -80,33 +120,36 @@ export function TrendsChart({ data }: TrendsChartProps) {
 						d={expensesPath}
 						fill="none"
 						stroke="#EF4444"
-						strokeWidth="2"
+						strokeWidth="1.5"
 						strokeLinecap="round"
 						strokeLinejoin="round"
 					/>
 
 					{/* Data points - Income */}
 					{data.map((d, i) => (
-						<circle key={`income-${i}`} cx={getX(i)} cy={getY(d.income)} r="4" fill="#10B981" />
+						<circle key={`income-${i}`} cx={getX(i)} cy={getY(d.income)} r="3" fill="#10B981" />
 					))}
 
 					{/* Data points - Expenses */}
 					{data.map((d, i) => (
-						<circle key={`expense-${i}`} cx={getX(i)} cy={getY(d.expenses)} r="4" fill="#EF4444" />
+						<circle key={`expense-${i}`} cx={getX(i)} cy={getY(d.expenses)} r="3" fill="#EF4444" />
 					))}
 
 					{/* X-axis labels */}
-					{data.map((d, i) => (
-						<text
-							key={`label-${i}`}
-							x={getX(i)}
-							y={chartHeight + 15}
-							textAnchor="middle"
-							className="text-xs fill-[var(--color-text-secondary)]"
-						>
-							{formatMonth(d.date)}
-						</text>
-					))}
+					{data.map(
+						(d, i) =>
+							shouldShowLabel(i, data.length) && (
+								<text
+									key={`label-${i}`}
+									x={getX(i)}
+									y={chartHeight + 15}
+									textAnchor="middle"
+									className="text-xs fill-[var(--color-text-secondary)]"
+								>
+									{formatDateLabel(d.date, dateRange)}
+								</text>
+							)
+					)}
 				</svg>
 			</div>
 

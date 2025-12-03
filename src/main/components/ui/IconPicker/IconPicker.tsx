@@ -375,7 +375,7 @@ const DefaultIcon = ({ className }: { className?: string }) => (
 	</svg>
 )
 
-function getIconComponent(name: string) {
+export function getIconComponent(name: string): React.FC<{ className?: string }> {
 	return IconSvgs[name] || DefaultIcon
 }
 

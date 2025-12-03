@@ -1,2 +1,12 @@
 // Utilities and helpers exports
-// Add utility exports here as they are created
+export {
+	API_BASE,
+	ApiError,
+	getAuthHeader,
+	clearAuthTokens,
+	authenticatedFetch,
+	apiGet,
+	apiPost,
+	apiPatch,
+	apiDelete,
+} from './api-client'

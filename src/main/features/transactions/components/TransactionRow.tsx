@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { Transaction } from '../types'
+import { getIconComponent } from '@main/components/ui/IconPicker'
 
 export interface TransactionRowProps {
 	transaction: Transaction
@@ -101,13 +102,21 @@ export function TransactionRow({
 			/>
 
 			{/* Category Icon */}
-			<div
-				data-testid="category-icon"
-				className="w-10 h-10 rounded-full flex items-center justify-center text-xl"
-				style={{ backgroundColor: `${transaction.categoryColor}20` }}
-			>
-				{transaction.categoryIcon}
-			</div>
+			{(() => {
+				const IconComponent = getIconComponent(transaction.categoryIcon || 'folder')
+				return (
+					<div
+						data-testid="category-icon"
+						className="w-10 h-10 rounded-full flex items-center justify-center"
+						style={{
+							backgroundColor: `${transaction.categoryColor}20`,
+							color: transaction.categoryColor,
+						}}
+					>
+						<IconComponent className="w-5 h-5" />
+					</div>
+				)
+			})()}
 
 			{/* Transaction Info */}
 			<div className="flex-1 min-w-0">

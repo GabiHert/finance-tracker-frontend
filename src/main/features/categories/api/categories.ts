@@ -1,6 +1,5 @@
 import type { Category, CreateCategoryInput } from '../types'
-
-const API_BASE = '/api/v1'
+import { API_BASE, authenticatedFetch } from '@main/lib'
 
 // Response types from backend
 export interface CategoryApiResponse {
@@ -35,18 +34,9 @@ function transformCategory(apiCategory: CategoryApiResponse): Category {
 	}
 }
 
-function getAuthHeader(): Record<string, string> {
-	const token = localStorage.getItem('access_token')
-	return token ? { Authorization: `Bearer ${token}` } : {}
-}
-
 export async function fetchCategories(): Promise<Category[]> {
-	const response = await fetch(`${API_BASE}/categories`, {
+	const response = await authenticatedFetch(`${API_BASE}/categories`, {
 		method: 'GET',
-		headers: {
-			'Content-Type': 'application/json',
-			...getAuthHeader(),
-		},
 	})
 
 	if (!response.ok) {
@@ -58,12 +48,8 @@ export async function fetchCategories(): Promise<Category[]> {
 }
 
 export async function createCategory(input: CreateCategoryInput): Promise<Category> {
-	const response = await fetch(`${API_BASE}/categories`, {
+	const response = await authenticatedFetch(`${API_BASE}/categories`, {
 		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-			...getAuthHeader(),
-		},
 		body: JSON.stringify({
 			name: input.name,
 			color: input.color,
@@ -85,12 +71,8 @@ export async function updateCategory(
 	id: string,
 	input: Partial<CreateCategoryInput>
 ): Promise<Category> {
-	const response = await fetch(`${API_BASE}/categories/${id}`, {
+	const response = await authenticatedFetch(`${API_BASE}/categories/${id}`, {
 		method: 'PATCH',
-		headers: {
-			'Content-Type': 'application/json',
-			...getAuthHeader(),
-		},
 		body: JSON.stringify({
 			name: input.name,
 			color: input.color,
@@ -108,12 +90,8 @@ export async function updateCategory(
 }
 
 export async function deleteCategory(id: string): Promise<void> {
-	const response = await fetch(`${API_BASE}/categories/${id}`, {
+	const response = await authenticatedFetch(`${API_BASE}/categories/${id}`, {
 		method: 'DELETE',
-		headers: {
-			'Content-Type': 'application/json',
-			...getAuthHeader(),
-		},
 	})
 
 	if (!response.ok) {

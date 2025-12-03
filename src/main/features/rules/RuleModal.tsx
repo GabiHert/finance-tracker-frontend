@@ -3,25 +3,49 @@ import { Modal } from '@main/components/ui/Modal'
 import { Button } from '@main/components/ui/Button'
 import { Select } from '@main/components/ui/Select'
 import { PatternHelper, generateRegexPreview } from './components/PatternHelper'
-import { mockCategories, mockMatchingTransactions } from './mock-data'
-import type { CategoryRule, MatchType, CreateRuleInput } from './types'
+import { testPattern } from './api/rules'
+import { fetchCategories } from '../categories/api/categories'
+import type { CategoryRule, MatchType, CreateRuleInput, PatternTestResult } from './types'
+import type { Category } from '../categories/types'
 
 interface RuleModalProps {
 	isOpen: boolean
 	onClose: () => void
 	onSave: (data: CreateRuleInput) => void
 	rule?: CategoryRule | null
+	isSaving?: boolean
 }
 
-export function RuleModal({ isOpen, onClose, onSave, rule }: RuleModalProps) {
+export function RuleModal({ isOpen, onClose, onSave, rule, isSaving = false }: RuleModalProps) {
 	const [matchType, setMatchType] = useState<MatchType>('contains')
 	const [pattern, setPattern] = useState('')
 	const [categoryId, setCategoryId] = useState('')
 	const [errors, setErrors] = useState<Record<string, string>>({})
 	const [showTestResults, setShowTestResults] = useState(false)
-	const [testResults, setTestResults] = useState<typeof mockMatchingTransactions>([])
+	const [testResults, setTestResults] = useState<PatternTestResult | null>(null)
+	const [isTesting, setIsTesting] = useState(false)
+	const [categories, setCategories] = useState<Category[]>([])
+	const [isLoadingCategories, setIsLoadingCategories] = useState(true)
 
 	const isEditing = !!rule
+
+	useEffect(() => {
+		async function loadCategories() {
+			try {
+				setIsLoadingCategories(true)
+				const data = await fetchCategories()
+				setCategories(data)
+			} catch (err) {
+				console.error('Failed to load categories:', err)
+			} finally {
+				setIsLoadingCategories(false)
+			}
+		}
+
+		if (isOpen) {
+			loadCategories()
+		}
+	}, [isOpen])
 
 	/* eslint-disable react-hooks/set-state-in-effect */
 	useEffect(() => {
@@ -36,9 +60,14 @@ export function RuleModal({ isOpen, onClose, onSave, rule }: RuleModalProps) {
 		}
 		setErrors({})
 		setShowTestResults(false)
-		setTestResults([])
+		setTestResults(null)
 	}, [rule, isOpen])
 	/* eslint-enable react-hooks/set-state-in-effect */
+
+	const categoryOptions = categories.map(c => ({
+		value: c.id,
+		label: c.name,
+	}))
 
 	const validate = (): boolean => {
 		const newErrors: Record<string, string> = {}
@@ -67,14 +96,22 @@ export function RuleModal({ isOpen, onClose, onSave, rule }: RuleModalProps) {
 		})
 	}
 
-	const handleTestPattern = () => {
-		// Simulate pattern testing - in real app this would call the API
-		const regex = new RegExp(generateRegexPreview(matchType, pattern), 'i')
-		const matches = mockMatchingTransactions.filter(tx =>
-			regex.test(tx.description)
-		)
-		setTestResults(matches)
-		setShowTestResults(true)
+	const handleTestPattern = async () => {
+		if (!pattern.trim()) return
+
+		try {
+			setIsTesting(true)
+			const regex = generateRegexPreview(matchType, pattern.trim())
+			const result = await testPattern(regex)
+			setTestResults(result)
+			setShowTestResults(true)
+		} catch (err) {
+			console.error('Failed to test pattern:', err)
+			setTestResults({ matchCount: 0, matches: [] })
+			setShowTestResults(true)
+		} finally {
+			setIsTesting(false)
+		}
 	}
 
 	return (
@@ -86,11 +123,11 @@ export function RuleModal({ isOpen, onClose, onSave, rule }: RuleModalProps) {
 			data-testid="rule-modal"
 			footer={
 				<>
-					<Button data-testid="cancel-btn" variant="secondary" onClick={onClose}>
+					<Button data-testid="cancel-btn" variant="secondary" onClick={onClose} disabled={isSaving}>
 						Cancelar
 					</Button>
-					<Button data-testid="save-rule-btn" onClick={handleSubmit}>
-						{isEditing ? 'Salvar' : 'Criar Regra'}
+					<Button data-testid="save-rule-btn" onClick={handleSubmit} disabled={isSaving}>
+						{isSaving ? 'Salvando...' : isEditing ? 'Salvar' : 'Criar Regra'}
 					</Button>
 				</>
 			}
@@ -110,10 +147,11 @@ export function RuleModal({ isOpen, onClose, onSave, rule }: RuleModalProps) {
 					</label>
 					<Select
 						data-testid="category-selector"
-						options={mockCategories}
+						options={categoryOptions}
 						value={categoryId}
 						onChange={(val) => setCategoryId(val as string)}
-						placeholder="Selecione uma categoria"
+						placeholder={isLoadingCategories ? 'Carregando...' : 'Selecione uma categoria'}
+						disabled={isLoadingCategories}
 					/>
 					{errors.category && (
 						<p className="text-sm text-red-500 mt-1">{errors.category}</p>
@@ -125,13 +163,13 @@ export function RuleModal({ isOpen, onClose, onSave, rule }: RuleModalProps) {
 						data-testid="test-pattern-btn"
 						variant="secondary"
 						onClick={handleTestPattern}
-						disabled={!pattern.trim()}
+						disabled={!pattern.trim() || isTesting}
 					>
-						Testar padrao
+						{isTesting ? 'Testando...' : 'Testar padrao'}
 					</Button>
 				</div>
 
-				{showTestResults && (
+				{showTestResults && testResults && (
 					<div data-testid="pattern-test-results" className="border border-[var(--color-border)] rounded-lg p-4">
 						<div className="flex items-center justify-between mb-2">
 							<span className="text-sm font-medium text-[var(--color-text)]">
@@ -141,18 +179,18 @@ export function RuleModal({ isOpen, onClose, onSave, rule }: RuleModalProps) {
 								data-testid="match-count"
 								className="text-sm text-[var(--color-text-secondary)]"
 							>
-								{testResults.length} transacoes encontradas
+								{testResults.matchCount} transacoes encontradas
 							</span>
 						</div>
-						{testResults.length > 0 ? (
+						{testResults.matches.length > 0 ? (
 							<ul className="space-y-2">
-								{testResults.slice(0, 5).map(tx => (
+								{testResults.matches.slice(0, 5).map(tx => (
 									<li
 										key={tx.id}
 										className="text-sm text-[var(--color-text-secondary)] flex justify-between"
 									>
 										<span>{tx.description}</span>
-										<span className="text-red-500">
+										<span className={tx.amount < 0 ? 'text-red-500' : 'text-green-500'}>
 											R$ {Math.abs(tx.amount).toFixed(2)}
 										</span>
 									</li>

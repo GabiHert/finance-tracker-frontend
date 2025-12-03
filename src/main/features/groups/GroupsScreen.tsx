@@ -1,20 +1,36 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@main/components/ui/Button'
 import { GroupCard } from './components/GroupCard'
 import { GroupModal } from './GroupModal'
-import { getGroups, addGroup, updateGroup } from './groups-store'
+import { fetchGroups, createGroup, updateGroup } from './api'
 import type { Group } from './types'
 
 export function GroupsScreen() {
 	const navigate = useNavigate()
-	const [groups, setGroups] = useState<Group[]>(getGroups)
+	const [groups, setGroups] = useState<Group[]>([])
+	const [isLoading, setIsLoading] = useState(true)
+	const [error, setError] = useState<string | null>(null)
 	const [isModalOpen, setIsModalOpen] = useState(false)
 	const [selectedGroup, setSelectedGroup] = useState<Group | null>(null)
 
-	const refreshGroups = useCallback(() => {
-		setGroups(getGroups())
+	const loadGroups = useCallback(async () => {
+		try {
+			setIsLoading(true)
+			setError(null)
+			const data = await fetchGroups()
+			setGroups(data)
+		} catch (err) {
+			setError('Erro ao carregar grupos')
+			console.error('Error loading groups:', err)
+		} finally {
+			setIsLoading(false)
+		}
 	}, [])
+
+	useEffect(() => {
+		loadGroups()
+	}, [loadGroups])
 
 	const handleAddGroup = () => {
 		setSelectedGroup(null)
@@ -30,17 +46,47 @@ export function GroupsScreen() {
 		setSelectedGroup(null)
 	}
 
-	const handleSaveGroup = (data: { name: string; description?: string }) => {
-		if (selectedGroup) {
-			updateGroup(selectedGroup.id, {
-				name: data.name,
-				description: data.description,
-			})
-		} else {
-			addGroup(data)
+	const handleSaveGroup = async (data: { name: string; description?: string }) => {
+		try {
+			if (selectedGroup) {
+				const updated = await updateGroup(selectedGroup.id, {
+					name: data.name,
+					description: data.description,
+				})
+				setGroups(groups.map((g) => (g.id === selectedGroup.id ? updated : g)))
+			} else {
+				const created = await createGroup(data)
+				setGroups([...groups, created])
+			}
+			handleCloseModal()
+		} catch (err) {
+			console.error('Error saving group:', err)
 		}
-		refreshGroups()
-		handleCloseModal()
+	}
+
+	if (isLoading) {
+		return (
+			<div data-testid="groups-screen" className="min-h-screen p-6 bg-[var(--color-background)]">
+				<div className="max-w-4xl mx-auto">
+					<div className="flex items-center justify-center py-12">
+						<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-primary)]"></div>
+					</div>
+				</div>
+			</div>
+		)
+	}
+
+	if (error) {
+		return (
+			<div data-testid="groups-screen" className="min-h-screen p-6 bg-[var(--color-background)]">
+				<div className="max-w-4xl mx-auto">
+					<div className="text-center py-12">
+						<p className="text-red-500 mb-4">{error}</p>
+						<Button onClick={loadGroups}>Tentar novamente</Button>
+					</div>
+				</div>
+			</div>
+		)
 	}
 
 	return (

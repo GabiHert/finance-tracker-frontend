@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Button } from '@main/components/ui/Button'
 import { Modal } from '@main/components/ui/Modal'
@@ -8,13 +8,16 @@ import { GroupMembersTab } from './components/GroupMembersTab'
 import { GroupCategoriesTab } from './components/GroupCategoriesTab'
 import { InviteModal } from './InviteModal'
 import { GroupCategoryModal } from './GroupCategoryModal'
-import { getGroupById } from './groups-store'
 import {
-	mockGroupTransactions,
-	mockGroupCategories,
-	mockGroupSummary,
-} from './mock-data'
-import type { Group, GroupTab, GroupCategory, GroupInvite } from './types'
+	fetchGroupById,
+	fetchGroupDashboard,
+	fetchGroupTransactions,
+	fetchGroupCategories,
+	createGroupCategory,
+	inviteMember,
+} from './api'
+import type { Group, GroupTab, GroupCategory, GroupTransaction, GroupDashboardData, GroupInvite } from './types'
+import type { Period } from '@main/features/dashboard/types'
 
 function ArrowLeftIcon() {
 	return (
@@ -75,57 +78,135 @@ export function GroupDetailScreen() {
 	const navigate = useNavigate()
 
 	const [group, setGroup] = useState<Group | null>(null)
+	const [dashboardData, setDashboardData] = useState<GroupDashboardData | null>(null)
+	const [transactions, setTransactions] = useState<GroupTransaction[]>([])
+	const [categories, setCategories] = useState<GroupCategory[]>([])
+	const [isLoading, setIsLoading] = useState(true)
+	const [isDashboardLoading, setIsDashboardLoading] = useState(false)
+	const [error, setError] = useState<string | null>(null)
 	const [activeTab, setActiveTab] = useState<GroupTab>('dashboard')
-	const [categories, setCategories] = useState(mockGroupCategories)
+	const [period, setPeriod] = useState<Period>('this_month')
 	const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
 	const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
-	useEffect(() => {
-		const foundGroup = getGroupById(groupId || '')
-		if (foundGroup) {
-			setGroup(foundGroup)
-		}
-	}, [groupId])
+	const loadGroupData = useCallback(async () => {
+		if (!groupId) return
 
-	if (!group) {
-		return (
-			<div className="min-h-screen p-6 bg-[var(--color-background)] flex items-center justify-center">
-				<p className="text-[var(--color-text-secondary)]">Grupo nao encontrado</p>
-			</div>
-		)
+		try {
+			setIsLoading(true)
+			setError(null)
+
+			// Fetch group data first - this is critical and must succeed
+			const groupData = await fetchGroupById(groupId)
+			setGroup(groupData)
+
+			// Fetch secondary data in parallel, but don't fail if they error
+			const [dashResult, transactionsResult, categoriesResult] = await Promise.allSettled([
+				fetchGroupDashboard(groupId, period),
+				fetchGroupTransactions(groupId),
+				fetchGroupCategories(groupId),
+			])
+
+			// Set data from successful fetches, use defaults for failures
+			if (dashResult.status === 'fulfilled') {
+				setDashboardData(dashResult.value)
+			} else {
+				console.warn('Failed to load dashboard:', dashResult.reason)
+				setDashboardData({
+					summary: { totalExpenses: 0, totalIncome: 0, netBalance: 0, memberCount: groupData.members?.length || 1 },
+					categoryBreakdown: [],
+					memberBreakdown: [],
+					trends: [],
+					recentTransactions: [],
+				})
+			}
+
+			if (transactionsResult.status === 'fulfilled') {
+				setTransactions(transactionsResult.value)
+			} else {
+				console.warn('Failed to load transactions:', transactionsResult.reason)
+				setTransactions([])
+			}
+
+			if (categoriesResult.status === 'fulfilled') {
+				setCategories(categoriesResult.value)
+			} else {
+				console.warn('Failed to load categories:', categoriesResult.reason)
+				setCategories([])
+			}
+		} catch (err) {
+			setError('Erro ao carregar dados do grupo')
+			console.error('Error loading group data:', err)
+		} finally {
+			setIsLoading(false)
+		}
+	}, [groupId, period])
+
+	const loadDashboard = useCallback(async () => {
+		if (!groupId) return
+
+		try {
+			setIsDashboardLoading(true)
+			const dashData = await fetchGroupDashboard(groupId, period)
+			setDashboardData(dashData)
+		} catch (err) {
+			console.error('Error loading dashboard:', err)
+		} finally {
+			setIsDashboardLoading(false)
+		}
+	}, [groupId, period])
+
+	const handlePeriodChange = (newPeriod: Period) => {
+		setPeriod(newPeriod)
 	}
+
+	useEffect(() => {
+		if (group) {
+			loadDashboard()
+		}
+	}, [period, loadDashboard, group])
+
+	useEffect(() => {
+		loadGroupData()
+	}, [loadGroupData])
 
 	const handleBack = () => {
 		navigate('/groups')
 	}
 
-	const handleInviteSend = (email: string) => {
-		const newInvite: GroupInvite = {
-			id: `invite-${Date.now()}`,
-			email,
-			status: 'pending',
-			expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-			createdAt: new Date().toISOString(),
+	const handleInviteSend = async (email: string) => {
+		if (!groupId || !group) return
+
+		try {
+			await inviteMember(groupId, email)
+			const newInvite: GroupInvite = {
+				id: `invite-${Date.now()}`,
+				email,
+				status: 'pending',
+				expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+				createdAt: new Date().toISOString(),
+			}
+			setGroup({
+				...group,
+				pendingInvites: [...(group.pendingInvites || []), newInvite],
+			})
+			setIsInviteModalOpen(false)
+		} catch (err) {
+			console.error('Error sending invite:', err)
 		}
-		setGroup({
-			...group,
-			pendingInvites: [...(group.pendingInvites || []), newInvite],
-		})
-		setIsInviteModalOpen(false)
 	}
 
-	const handleSaveCategory = (data: { name: string; type: 'income' | 'expense'; color: string }) => {
-		const newCategory: GroupCategory = {
-			id: `cat-${Date.now()}`,
-			name: data.name,
-			type: data.type,
-			icon: 'tag',
-			color: data.color,
-			transactionCount: 0,
+	const handleSaveCategory = async (data: { name: string; type: 'income' | 'expense'; color: string }) => {
+		if (!groupId) return
+
+		try {
+			const newCategory = await createGroupCategory(groupId, data)
+			setCategories([...categories, newCategory])
+			setIsCategoryModalOpen(false)
+		} catch (err) {
+			console.error('Error creating category:', err)
 		}
-		setCategories([...categories, newCategory])
-		setIsCategoryModalOpen(false)
 	}
 
 	const tabs: { id: GroupTab; label: string }[] = [
@@ -134,6 +215,39 @@ export function GroupDetailScreen() {
 		{ id: 'categories', label: 'Categorias' },
 		{ id: 'members', label: 'Membros' },
 	]
+
+	if (isLoading) {
+		return (
+			<div data-testid="group-detail-screen" className="min-h-screen bg-[var(--color-background)]">
+				<div className="max-w-4xl mx-auto p-6">
+					<div className="flex items-center justify-center py-12">
+						<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-primary)]"></div>
+					</div>
+				</div>
+			</div>
+		)
+	}
+
+	if (error) {
+		return (
+			<div data-testid="group-detail-screen" className="min-h-screen bg-[var(--color-background)]">
+				<div className="max-w-4xl mx-auto p-6">
+					<div className="text-center py-12">
+						<p className="text-red-500 mb-4">{error}</p>
+						<Button onClick={loadGroupData}>Tentar novamente</Button>
+					</div>
+				</div>
+			</div>
+		)
+	}
+
+	if (!group) {
+		return (
+			<div data-testid="group-detail-screen" className="min-h-screen p-6 bg-[var(--color-background)] flex items-center justify-center">
+				<p className="text-[var(--color-text-secondary)]">Grupo nao encontrado</p>
+			</div>
+		)
+	}
 
 	return (
 		<div data-testid="group-detail-screen" className="min-h-screen bg-[var(--color-background)]">
@@ -219,13 +333,19 @@ export function GroupDetailScreen() {
 
 				{activeTab === 'dashboard' && (
 					<div data-testid="group-dashboard-tab">
-						<GroupDashboardTab summary={mockGroupSummary} />
+						<GroupDashboardTab
+							data={dashboardData}
+							period={period}
+							onPeriodChange={handlePeriodChange}
+							onRefresh={loadDashboard}
+							isLoading={isDashboardLoading}
+						/>
 					</div>
 				)}
 
 				{activeTab === 'transactions' && (
 					<div data-testid="group-transactions-tab">
-						<GroupTransactionsTab transactions={mockGroupTransactions} />
+						<GroupTransactionsTab transactions={transactions} />
 					</div>
 				)}
 

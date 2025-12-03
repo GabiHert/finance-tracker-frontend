@@ -37,7 +37,7 @@ export function GroupCategoriesTab({
 					Crie categorias para organizar as despesas do grupo
 				</p>
 				{currentUserRole === 'admin' && (
-					<Button onClick={onAddCategory}>
+					<Button data-testid="new-category-btn" onClick={onAddCategory}>
 						Criar Categoria
 					</Button>
 				)}

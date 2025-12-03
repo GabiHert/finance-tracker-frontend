@@ -1,5 +1,5 @@
 import { Card } from '@main/components/ui/Card'
-import { CATEGORY_ICONS } from '@main/components/ui/IconPicker'
+import { getIconComponent } from '@main/components/ui/IconPicker'
 import type { Category } from '../types'
 
 interface CategoryCardProps {
@@ -29,8 +29,7 @@ function TrashIcon() {
 }
 
 export function CategoryCard({ category, onClick, onDelete }: CategoryCardProps) {
-	const iconDef = CATEGORY_ICONS.find(i => i.name === category.icon)
-	const IconPath = iconDef?.path || ''
+	const IconComponent = getIconComponent(category.icon || 'folder')
 
 	const handleDelete = (e: React.MouseEvent) => {
 		e.stopPropagation()
@@ -49,21 +48,11 @@ export function CategoryCard({ category, onClick, onDelete }: CategoryCardProps)
 				<div
 					data-testid="category-color"
 					className="w-12 h-12 rounded-lg flex items-center justify-center"
-					style={{ backgroundColor: category.color + '20' }}
+					style={{ backgroundColor: category.color + '20', color: category.color }}
 				>
-					<svg
-						data-testid="category-icon"
-						xmlns="http://www.w3.org/2000/svg"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke={category.color}
-						strokeWidth="2"
-						strokeLinecap="round"
-						strokeLinejoin="round"
-						className="w-6 h-6"
-					>
-						<path d={IconPath} />
-					</svg>
+					<span data-testid="category-icon">
+						<IconComponent className="w-6 h-6" />
+					</span>
 				</div>
 				<div className="flex-1 min-w-0">
 					<h3

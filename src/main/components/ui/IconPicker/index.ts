@@ -1,3 +1,3 @@
-export { IconPicker, type IconPickerProps } from './IconPicker'
+export { IconPicker, type IconPickerProps, getIconComponent } from './IconPicker'
 export { CATEGORY_ICONS, ICON_NAMES, type IconDefinition } from './icons'
 export { default } from './IconPicker'

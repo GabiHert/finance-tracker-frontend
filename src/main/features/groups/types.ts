@@ -69,4 +69,57 @@ export interface GroupSummary {
 	}[]
 }
 
+// Enhanced dashboard types
+export interface GroupDashboardSummary {
+	totalExpenses: number
+	totalIncome: number
+	netBalance: number
+	memberCount: number
+	expensesChange?: number
+	incomeChange?: number
+}
+
+export interface GroupCategoryBreakdown {
+	categoryId: string
+	categoryName: string
+	categoryColor: string
+	amount: number
+	percentage: number
+}
+
+export interface GroupMemberBreakdown {
+	memberId: string
+	memberName: string
+	avatarUrl?: string
+	total: number
+	percentage: number
+	transactionCount: number
+}
+
+export interface GroupTrendPoint {
+	date: string
+	income: number
+	expenses: number
+}
+
+export interface GroupDashboardTransaction {
+	id: string
+	description: string
+	amount: number
+	date: string
+	categoryName: string
+	categoryColor: string
+	categoryIcon: string
+	memberName: string
+	memberAvatarUrl?: string
+}
+
+export interface GroupDashboardData {
+	summary: GroupDashboardSummary
+	categoryBreakdown: GroupCategoryBreakdown[]
+	memberBreakdown: GroupMemberBreakdown[]
+	trends: GroupTrendPoint[]
+	recentTransactions: GroupDashboardTransaction[]
+}
+
 export type GroupTab = 'dashboard' | 'transactions' | 'categories' | 'members'

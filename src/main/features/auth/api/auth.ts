@@ -1,6 +1,5 @@
 import type { LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, AuthError } from '../types'
-
-const API_BASE = '/api/v1'
+import { API_BASE, authenticatedFetch } from '@main/lib'
 
 export async function login(data: LoginRequest): Promise<LoginResponse> {
 	const response = await fetch(`${API_BASE}/auth/login`, {
@@ -91,15 +90,10 @@ export async function resetPassword(token: string, newPassword: string): Promise
 	}
 }
 
-export async function deleteAccount(password: string): Promise<void> {
-	const accessToken = localStorage.getItem('access_token')
-	const response = await fetch(`${API_BASE}/users/me`, {
+export async function deleteAccount(password: string, confirmation: string = 'DELETE'): Promise<void> {
+	const response = await authenticatedFetch(`${API_BASE}/users/me`, {
 		method: 'DELETE',
-		headers: {
-			'Content-Type': 'application/json',
-			'Authorization': `Bearer ${accessToken}`,
-		},
-		body: JSON.stringify({ password }),
+		body: JSON.stringify({ password, confirmation }),
 	})
 
 	if (!response.ok) {

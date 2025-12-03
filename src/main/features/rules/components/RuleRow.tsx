@@ -6,6 +6,10 @@ interface RuleRowProps {
 	onEdit: (rule: CategoryRule) => void
 	onDelete: (rule: CategoryRule) => void
 	isDragging?: boolean
+	onDragStart?: () => void
+	onDragEnter?: (e: React.DragEvent) => void
+	onDragOver?: (e: React.DragEvent) => void
+	onDragEnd?: () => void
 }
 
 function GripIcon() {
@@ -69,10 +73,15 @@ function TrashIcon() {
 	)
 }
 
-export function RuleRow({ rule, onEdit, onDelete, isDragging }: RuleRowProps) {
+export function RuleRow({ rule, onEdit, onDelete, isDragging, onDragStart, onDragEnter, onDragOver, onDragEnd }: RuleRowProps) {
 	return (
 		<div
 			data-testid="rule-row"
+			draggable={!!onDragStart}
+			onDragStart={onDragStart}
+			onDragEnter={onDragEnter}
+			onDragOver={onDragOver}
+			onDragEnd={onDragEnd}
 			className={`
 				flex items-center gap-4 p-4 bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)]
 				${isDragging ? 'opacity-50' : ''}
@@ -80,6 +89,11 @@ export function RuleRow({ rule, onEdit, onDelete, isDragging }: RuleRowProps) {
 		>
 			<div
 				data-testid="drag-handle"
+				draggable
+				onDragStart={(e) => {
+					// Forward drag event to parent handler
+					if (onDragStart) onDragStart()
+				}}
 				className="cursor-grab text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
 			>
 				<GripIcon />
