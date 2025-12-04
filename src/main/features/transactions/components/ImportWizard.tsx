@@ -4,6 +4,23 @@ import { Button } from '@main/components/ui/Button'
 import { Select } from '@main/components/ui/Select'
 import { ColumnMappingUI, validateColumnMapping, extractCSVHeaders } from './ColumnMappingUI'
 import type { ColumnMapping, ColumnMappingField } from './ColumnMappingUI'
+import {
+	parseCreditCardCSV,
+	toApiFormat,
+	validateCreditCardCSV,
+	getCCSummary,
+} from '@main/features/credit-card/utils/credit-card-parser'
+import {
+	previewCreditCardImport,
+	importCreditCardTransactions,
+} from '@main/features/credit-card/api/credit-card'
+import { CreditCardMatchPreview } from '@main/features/credit-card/components/CreditCardMatchPreview'
+import type {
+	CreditCardTransaction,
+	ImportPreview,
+	ConfirmedMatch,
+	ParsedCCLine,
+} from '@main/features/credit-card'
 
 interface ParsedTransaction {
 	id: string
@@ -24,11 +41,12 @@ interface ImportWizardProps {
 	categoryOptions: Array<{ value: string; label: string }>
 }
 
-type Step = 'upload' | 'categorize' | 'success'
+type Step = 'upload' | 'categorize' | 'cc-preview' | 'success'
 
 const BANK_FORMAT_OPTIONS = [
 	{ value: 'auto', label: 'Auto Detect' },
 	{ value: 'nubank', label: 'Nubank' },
+	{ value: 'nubank-cc', label: 'Nubank Cartao de Credito' },
 	{ value: 'inter', label: 'Banco Inter' },
 	{ value: 'itau', label: 'Itau' },
 	{ value: 'custom', label: 'Personalizado' },
@@ -50,6 +68,12 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 	const [mappingError, setMappingError] = useState<string | null>(null)
 	const [rawContent, setRawContent] = useState<string>('')
 
+	// Credit card import state
+	const [ccTransactions, setCCTransactions] = useState<CreditCardTransaction[]>([])
+	const [ccPreview, setCCPreview] = useState<ImportPreview | null>(null)
+	const [ccParsedLines, setCCParsedLines] = useState<ParsedCCLine[]>([])
+	const [importedCCCount, setImportedCCCount] = useState(0)
+
 	const resetState = useCallback(() => {
 		setStep('upload')
 		setBankFormat('auto')
@@ -62,6 +86,11 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 		setColumnMapping({})
 		setMappingError(null)
 		setRawContent('')
+		// Reset CC state
+		setCCTransactions([])
+		setCCPreview(null)
+		setCCParsedLines([])
+		setImportedCCCount(0)
 	}, [])
 
 	const handleClose = useCallback(async () => {
@@ -151,6 +180,33 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 		try {
 			const content = await selectedFile.text()
 			setRawContent(content)
+
+			// For Nubank Credit Card format
+			if (bankFormat === 'nubank-cc') {
+				const validation = validateCreditCardCSV(content)
+				if (!validation.valid) {
+					setError(validation.error || 'Formato de arquivo invalido para cartao de credito')
+					setIsLoading(false)
+					return
+				}
+
+				const parsedLines = parseCreditCardCSV(content)
+				if (parsedLines.length === 0) {
+					setError('Nenhuma transacao encontrada no arquivo.')
+					setIsLoading(false)
+					return
+				}
+
+				setCCParsedLines(parsedLines)
+				const apiTransactions = toApiFormat(parsedLines)
+				setCCTransactions(apiTransactions)
+
+				// Get summary for display
+				const summary = getCCSummary(parsedLines)
+				// Use summary for preview info display later
+				setIsLoading(false)
+				return
+			}
 
 			// For custom format, extract headers and wait for user mapping
 			if (bankFormat === 'custom') {
@@ -250,17 +306,55 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 		)
 	}, [])
 
-	const handleNext = useCallback(() => {
+	const handleNext = useCallback(async () => {
 		if (step === 'upload') {
+			// For CC format, go to CC preview step and fetch preview from API
+			if (bankFormat === 'nubank-cc') {
+				setIsLoading(true)
+				setError(null)
+				try {
+					const preview = await previewCreditCardImport(ccTransactions)
+					setCCPreview(preview)
+					setStep('cc-preview')
+				} catch (err) {
+					setError(err instanceof Error ? err.message : 'Erro ao analisar transacoes do cartao')
+				} finally {
+					setIsLoading(false)
+				}
+				return
+			}
 			setStep('categorize')
+		}
+	}, [step, bankFormat, ccTransactions])
+
+	const handleBack = useCallback(() => {
+		if (step === 'categorize' || step === 'cc-preview') {
+			setStep('upload')
+			setCCPreview(null)
 		}
 	}, [step])
 
-	const handleBack = useCallback(() => {
-		if (step === 'categorize') {
-			setStep('upload')
-		}
-	}, [step])
+	// Handle CC import confirmation
+	const handleCCImportConfirm = useCallback(
+		async (confirmedMatches: ConfirmedMatch[], skipUnmatched: boolean) => {
+			setIsLoading(true)
+			setError(null)
+			try {
+				const result = await importCreditCardTransactions(
+					ccTransactions,
+					confirmedMatches,
+					skipUnmatched
+				)
+				setImportedCCCount(result.importedCount)
+				setStep('success')
+			} catch (err) {
+				setError(err instanceof Error ? err.message : 'Erro ao importar transacoes')
+			} finally {
+				setIsLoading(false)
+			}
+		},
+		[ccTransactions]
+	)
 
 	const handleImport = useCallback(async () => {
 		const transactionsToImport = parsedTransactions.filter(t => {
@@ -315,12 +409,12 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 				<div className="w-12 h-0.5 bg-[var(--color-border)]" />
 				<div
 					data-testid="import-step-2"
-					className={`flex items-center gap-2 ${step === 'categorize' ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-secondary)]'}`}
+					className={`flex items-center gap-2 ${step === 'categorize' || step === 'cc-preview' ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-secondary)]'}`}
 				>
-					<div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'categorize' ? 'bg-[var(--color-primary)] text-white' : 'bg-[var(--color-border)] text-[var(--color-text-secondary)]'}`}>
+					<div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'categorize' || step === 'cc-preview' ? 'bg-[var(--color-primary)] text-white' : 'bg-[var(--color-border)] text-[var(--color-text-secondary)]'}`}>
 						2
 					</div>
-					<span className="font-medium">Categorize</span>
+					<span className="font-medium">{bankFormat === 'nubank-cc' ? 'Vincular' : 'Categorize'}</span>
 				</div>
 			</div>
 
@@ -341,6 +435,16 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 							/>
 						</div>
 					</div>
+
+					{/* Info text for Credit Card format */}
+					{bankFormat === 'nubank-cc' && (
+						<div className="mb-4 p-3 bg-[var(--color-primary-50)] border border-[var(--color-primary-200)] rounded-lg">
+							<p className="text-sm text-[var(--color-primary)]">
+								O extrato do cartao de credito sera vinculado a transacoes "Pagamento de fatura" existentes.
+								As compras individuais substituirao o pagamento agregado.
+							</p>
+						</div>
+					)}
 
 					{/* File Drop Zone */}
 					<div
@@ -503,6 +607,64 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 							</div>
 						</div>
 					)}
+
+					{/* Credit Card Preview */}
+					{bankFormat === 'nubank-cc' && ccTransactions.length > 0 && (
+						<div className="mt-6">
+							<div className="flex items-center justify-between mb-4">
+								<h3 className="font-semibold text-[var(--color-text)]">
+									Transacoes do Cartao ({ccTransactions.filter(t => !t.isPaymentReceived).length} compras)
+								</h3>
+							</div>
+
+							<div data-testid="cc-preview-table" className="border border-[var(--color-border)] rounded-lg overflow-hidden max-h-64 overflow-y-auto">
+								<table className="w-full">
+									<thead className="bg-[var(--color-surface)] sticky top-0">
+										<tr>
+											<th className="p-2 text-left text-sm font-medium text-[var(--color-text-secondary)]">Data</th>
+											<th className="p-2 text-left text-sm font-medium text-[var(--color-text-secondary)]">Descricao</th>
+											<th className="p-2 text-right text-sm font-medium text-[var(--color-text-secondary)]">Valor</th>
+										</tr>
+									</thead>
+									<tbody>
+										{ccTransactions.map((tx, idx) => (
+											<tr
+												key={idx}
+												data-testid="cc-preview-row"
+												className={`border-t border-[var(--color-border)] ${tx.isPaymentReceived ? 'bg-[var(--color-success-50)]' : ''}`}
+											>
+												<td className="p-2 text-sm text-[var(--color-text)]">
+													{tx.date}
+												</td>
+												<td className="p-2 text-sm text-[var(--color-text)]">
+													<div className="flex items-center gap-2">
+														{tx.title}
+														{tx.installmentCurrent && tx.installmentTotal && (
+															<span className="px-1.5 py-0.5 text-xs bg-blue-100 text-blue-800 rounded">
+																{tx.installmentCurrent}/{tx.installmentTotal}
+															</span>
+														)}
+														{tx.isPaymentReceived && (
+															<span className="px-1.5 py-0.5 text-xs bg-green-100 text-green-800 rounded">
+																Pagamento
+															</span>
+														)}
+													</div>
+												</td>
+												<td className={`p-2 text-sm text-right font-medium ${tx.isPaymentReceived ? 'text-[var(--color-success)]' : 'text-[var(--color-error)]'}`}>
+													{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Math.abs(tx.amount))}
+												</td>
+											</tr>
+										))}
+									</tbody>
+								</table>
+							</div>
+
+							<div className="mt-2 text-sm text-[var(--color-text-secondary)]">
+								{ccTransactions.filter(t => !t.isPaymentReceived).length} transacoes serao importadas
+							</div>
+						</div>
+					)}
 				</div>
 			)}
 
@@ -560,56 +722,78 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 				</div>
 			)}
 
+			{/* Credit Card Match Preview Step */}
+			{step === 'cc-preview' && ccPreview && (
+				<CreditCardMatchPreview
+					matches={ccPreview.matches}
+					transactions={ccTransactions}
+					warnings={ccPreview.warnings}
+					unmatchedCount={ccPreview.unmatchedTransactionCount}
+					totalAmount={ccPreview.totalCCAmount}
+					onConfirm={handleCCImportConfirm}
+					onCancel={() => handleBack()}
+					isLoading={isLoading}
+				/>
+			)}
+
 			{step === 'success' && (
 				<div data-testid="import-success" className="text-center py-8">
 					<div className="text-6xl mb-4">🎉</div>
 					<h3 className="text-xl font-bold text-[var(--color-text)] mb-2">
-						Import Complete!
+						Importacao Concluida!
 					</h3>
 					<p className="text-[var(--color-text-secondary)]">
-						Successfully imported {selectedCount} transactions.
+						{bankFormat === 'nubank-cc'
+							? `${importedCCCount} transacoes do cartao importadas com sucesso.`
+							: `${selectedCount} transacoes importadas com sucesso.`}
 					</p>
 				</div>
 			)}
 
-			{/* Footer */}
-			<div className="flex justify-between mt-6 pt-4 border-t border-[var(--color-border)]">
-				{step === 'success' ? (
-					<div className="w-full flex justify-center">
-						<Button onClick={handleClose} data-testid="import-done-btn">
-							Done
-						</Button>
-					</div>
-				) : (
-					<>
-						<Button
-							variant="outline"
-							onClick={step === 'upload' ? handleClose : handleBack}
-							data-testid="import-cancel-btn"
-						>
-							{step === 'upload' ? 'Cancel' : 'Back'}
-						</Button>
+			{/* Footer - hidden during cc-preview as CreditCardMatchPreview has its own buttons */}
+			{step !== 'cc-preview' && (
+				<div className="flex justify-between mt-6 pt-4 border-t border-[var(--color-border)]">
+					{step === 'success' ? (
+						<div className="w-full flex justify-center">
+							<Button onClick={handleClose} data-testid="import-done-btn">
+								Done
+							</Button>
+						</div>
+					) : (
+						<>
+							<Button
+								variant="outline"
+								onClick={step === 'upload' ? handleClose : handleBack}
+								data-testid="import-cancel-btn"
+							>
+								{step === 'upload' ? 'Cancel' : 'Back'}
+							</Button>
 
-						{step === 'upload' ? (
-							<Button
-								onClick={handleNext}
-								disabled={parsedTransactions.length === 0 || (bankFormat === 'custom' && !!mappingError)}
-								data-testid="import-next-btn"
-							>
-								Next
-							</Button>
-						) : (
-							<Button
-								onClick={handleImport}
-								disabled={isLoading}
-								data-testid="import-confirm-btn"
-							>
-								{isLoading ? 'Importing...' : `Import ${selectedCount} Transactions`}
-							</Button>
-						)}
-					</>
-				)}
-			</div>
+							{step === 'upload' ? (
+								<Button
+									onClick={handleNext}
+									disabled={
+										(bankFormat === 'nubank-cc' ? ccTransactions.length === 0 : parsedTransactions.length === 0) ||
+										(bankFormat === 'custom' && !!mappingError) ||
+										isLoading
+									}
+									data-testid="import-next-btn"
+								>
+									{isLoading ? 'Analisando...' : 'Next'}
+								</Button>
+							) : (
+								<Button
+									onClick={handleImport}
+									disabled={isLoading}
+									data-testid="import-confirm-btn"
+								>
+									{isLoading ? 'Importing...' : `Import ${selectedCount} Transactions`}
+								</Button>
+							)}
+						</>
+					)}
+				</div>
+			)}
 		</Modal>
 	)
 }

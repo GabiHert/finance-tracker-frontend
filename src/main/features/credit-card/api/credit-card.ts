@@ -111,11 +111,38 @@ function transformCreditCardStatus(apiStatus: CreditCardStatusApiResponse): Cred
 	}
 }
 
+/**
+ * Extract billing cycle from transactions.
+ * Uses the "Pagamento recebido" date to determine the billing cycle.
+ * Format: "YYYY-MM"
+ */
+function extractBillingCycle(transactions: CreditCardTransaction[]): string {
+	// Find "Pagamento recebido" transaction
+	const paymentReceived = transactions.find((tx) => tx.isPaymentReceived)
+
+	if (paymentReceived) {
+		// Use the date of "Pagamento recebido" for billing cycle
+		// Format: "YYYY-MM-DD" -> "YYYY-MM"
+		return paymentReceived.date.substring(0, 7)
+	}
+
+	// Fallback: use the most recent transaction date
+	if (transactions.length > 0) {
+		// Sort by date descending and take the first
+		const sortedDates = transactions.map((tx) => tx.date).sort((a, b) => b.localeCompare(a))
+		return sortedDates[0].substring(0, 7)
+	}
+
+	// Last resort: use current month
+	const now = new Date()
+	return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
+
 // Transform frontend transaction to API format
 function transformTransactionToApi(tx: CreditCardTransaction): Record<string, unknown> {
 	return {
 		date: tx.date,
-		title: tx.title,
+		description: tx.title, // Backend expects "description", not "title"
 		amount: Math.abs(tx.amount),
 		installment_current: tx.installmentCurrent,
 		installment_total: tx.installmentTotal,
@@ -131,11 +158,14 @@ function transformTransactionToApi(tx: CreditCardTransaction): Record<string, un
 export async function previewCreditCardImport(
 	transactions: CreditCardTransaction[]
 ): Promise<ImportPreview> {
+	const billingCycle = extractBillingCycle(transactions)
+
 	const response = await authenticatedFetch(
 		`${API_BASE}/transactions/credit-card/preview`,
 		{
 			method: 'POST',
 			body: JSON.stringify({
+				billing_cycle: billingCycle,
 				transactions: transactions.map(transformTransactionToApi),
 			}),
 		}
@@ -158,17 +188,21 @@ export async function importCreditCardTransactions(
 	confirmedMatches: ConfirmedMatch[],
 	skipUnmatched: boolean = false
 ): Promise<ImportResult> {
+	const billingCycle = extractBillingCycle(transactions)
+
 	const response = await authenticatedFetch(
 		`${API_BASE}/transactions/credit-card/import`,
 		{
 			method: 'POST',
 			body: JSON.stringify({
+				billing_cycle: billingCycle,
 				transactions: transactions.map(transformTransactionToApi),
 				confirmed_matches: confirmedMatches.map((match) => ({
 					bill_transaction_id: match.billTransactionId,
 					payment_received_date: match.paymentReceivedDate,
 				})),
 				skip_unmatched: skipUnmatched,
+				apply_auto_category: true,
 			}),
 		}
 	)
