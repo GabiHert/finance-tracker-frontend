@@ -521,15 +521,44 @@ function transformDashboardData(api: GroupDashboardApiResponse): GroupDashboardD
 	}
 }
 
+export interface FetchGroupDashboardOptions {
+	groupId: string
+	period?: Period
+	customStartDate?: string // YYYY-MM-DD format
+	customEndDate?: string // YYYY-MM-DD format
+}
+
 // Group dashboard
 export async function fetchGroupDashboard(
-	groupId: string,
+	groupIdOrOptions: string | FetchGroupDashboardOptions,
 	period: Period = 'this_month'
 ): Promise<GroupDashboardData> {
-	const response = await authenticatedFetch(
-		`${API_BASE}/groups/${groupId}/dashboard?period=${period}`,
-		{ method: 'GET' }
-	)
+	let groupId: string
+	let startDate: string | undefined
+	let endDate: string | undefined
+	let effectivePeriod: Period
+
+	// Support both old signature (groupId, period) and new signature (options object)
+	if (typeof groupIdOrOptions === 'string') {
+		groupId = groupIdOrOptions
+		effectivePeriod = period
+	} else {
+		groupId = groupIdOrOptions.groupId
+		effectivePeriod = groupIdOrOptions.period || 'this_month'
+		startDate = groupIdOrOptions.customStartDate
+		endDate = groupIdOrOptions.customEndDate
+	}
+
+	// Build URL with appropriate query parameters
+	let url = `${API_BASE}/groups/${groupId}/dashboard`
+
+	if (effectivePeriod === 'custom' && startDate && endDate) {
+		url += `?start_date=${startDate}&end_date=${endDate}`
+	} else {
+		url += `?period=${effectivePeriod}`
+	}
+
+	const response = await authenticatedFetch(url, { method: 'GET' })
 
 	if (!response.ok) {
 		if (response.status === 404) {

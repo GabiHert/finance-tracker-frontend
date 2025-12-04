@@ -1,6 +1,6 @@
 import { DonutChart } from '@main/features/dashboard/components/DonutChart'
 import { TrendsChart } from '@main/features/dashboard/components/TrendsChart'
-import { PeriodSelector } from '@main/features/dashboard/components/PeriodSelector'
+import { PeriodSelector, type DateRange } from '@main/features/dashboard/components/PeriodSelector'
 import { formatCurrency, formatPercentage } from '@main/features/dashboard/types'
 import type { Period } from '@main/features/dashboard/types'
 import { MemberContributionChart } from './MemberContributionChart'
@@ -11,6 +11,8 @@ interface GroupDashboardTabProps {
 	data: GroupDashboardData | null
 	period: Period
 	onPeriodChange: (period: Period) => void
+	customDateRange?: DateRange
+	onCustomDateRangeChange?: (range: DateRange) => void
 	onRefresh: () => void
 	isLoading: boolean
 }
@@ -82,6 +84,8 @@ export function GroupDashboardTab({
 	data,
 	period,
 	onPeriodChange,
+	customDateRange,
+	onCustomDateRangeChange,
 	onRefresh,
 	isLoading,
 }: GroupDashboardTabProps) {
@@ -92,7 +96,12 @@ export function GroupDashboardTab({
 				<div className="flex items-center justify-between">
 					<h2 className="text-lg font-medium text-[var(--color-text)]">Visao Geral</h2>
 					<div className="flex items-center gap-2">
-						<PeriodSelector value={period} onChange={onPeriodChange} />
+						<PeriodSelector
+							value={period}
+							onChange={onPeriodChange}
+							customDateRange={customDateRange}
+							onCustomDateRangeChange={onCustomDateRangeChange}
+						/>
 						<button
 							onClick={onRefresh}
 							disabled={isLoading}
@@ -150,7 +159,12 @@ export function GroupDashboardTab({
 			<div className="flex items-center justify-between">
 				<h2 className="text-lg font-medium text-[var(--color-text)]">Visao Geral</h2>
 				<div className="flex items-center gap-2">
-					<PeriodSelector value={period} onChange={onPeriodChange} />
+					<PeriodSelector
+						value={period}
+						onChange={onPeriodChange}
+						customDateRange={customDateRange}
+						onCustomDateRangeChange={onCustomDateRangeChange}
+					/>
 					<button
 						onClick={onRefresh}
 						disabled={isLoading}

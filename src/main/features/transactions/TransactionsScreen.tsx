@@ -20,6 +20,7 @@ import {
 import type { Transaction, TransactionFilters, TransactionFormData } from './types'
 import { fetchCategories } from '@main/features/categories/api/categories'
 import type { Category } from '@main/features/categories/types'
+import { getIconComponent } from '@main/components/ui/IconPicker'
 
 export function TransactionsScreen() {
 	const [searchParams] = useSearchParams()
@@ -147,11 +148,14 @@ export function TransactionsScreen() {
 
 	// Category options for filters and modal
 	const categoryOptions = useMemo(() => {
-		return categories.map(c => ({
-			value: c.id,
-			label: c.name,
-			icon: c.icon,
-		}))
+		return categories.map(c => {
+			const IconComponent = getIconComponent(c.icon)
+			return {
+				value: c.id,
+				label: c.name,
+				icon: <IconComponent className="w-4 h-4" />,
+			}
+		})
 	}, [categories])
 
 	// Selected transaction descriptions for bulk categorize preview

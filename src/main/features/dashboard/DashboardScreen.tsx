@@ -1,13 +1,13 @@
 import { useState, useCallback, useEffect } from 'react'
 import { Button } from '@main/components/ui/Button'
 import { MetricCard } from './components/MetricCard'
-import { PeriodSelector } from './components/PeriodSelector'
+import { PeriodSelector, type DateRange } from './components/PeriodSelector'
 import { DonutChart } from './components/DonutChart'
 import { TrendsChart } from './components/TrendsChart'
 import { RecentTransactions } from './components/RecentTransactions'
 import { GoalsProgress } from './components/GoalsProgress'
 import { AlertsBanner } from './components/AlertsBanner'
-import { fetchDashboardData, type DashboardData } from './api/dashboard'
+import { fetchDashboardData, type DashboardData, type CustomDateRange } from './api/dashboard'
 import type { Period } from './types'
 
 function RefreshIcon() {
@@ -21,8 +21,22 @@ function RefreshIcon() {
 	)
 }
 
+/**
+ * Convert DD/MM/YYYY to YYYY-MM-DD format
+ */
+function convertDateFormat(dateStr: string): string {
+	if (!dateStr) return ''
+	const [day, month, year] = dateStr.split('/')
+	if (!day || !month || !year) return ''
+	return `${year}-${month}-${day}`
+}
+
 export function DashboardScreen() {
 	const [period, setPeriod] = useState<Period>('this_month')
+	const [customDateRange, setCustomDateRange] = useState<DateRange>({
+		startDate: '',
+		endDate: '',
+	})
 	const [isLoading, setIsLoading] = useState(true)
 	const [lastUpdated, setLastUpdated] = useState(new Date())
 	const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
@@ -32,7 +46,22 @@ export function DashboardScreen() {
 		setIsLoading(true)
 		setError(null)
 		try {
-			const data = await fetchDashboardData(period)
+			let options: { period: Period; customDateRange?: CustomDateRange }
+
+			if (period === 'custom' && customDateRange.startDate && customDateRange.endDate) {
+				// Convert DD/MM/YYYY to YYYY-MM-DD for API
+				options = {
+					period,
+					customDateRange: {
+						startDate: convertDateFormat(customDateRange.startDate),
+						endDate: convertDateFormat(customDateRange.endDate),
+					},
+				}
+			} else {
+				options = { period }
+			}
+
+			const data = await fetchDashboardData(options)
 			setDashboardData(data)
 			setLastUpdated(new Date())
 		} catch (err) {
@@ -40,11 +69,14 @@ export function DashboardScreen() {
 		} finally {
 			setIsLoading(false)
 		}
-	}, [period])
+	}, [period, customDateRange])
 
 	useEffect(() => {
-		loadDashboardData()
-	}, [loadDashboardData])
+		// Only load if not custom, or if custom and both dates are set
+		if (period !== 'custom' || (customDateRange.startDate && customDateRange.endDate)) {
+			loadDashboardData()
+		}
+	}, [loadDashboardData, period, customDateRange])
 
 	const handleRefresh = useCallback(() => {
 		loadDashboardData()
@@ -70,8 +102,20 @@ export function DashboardScreen() {
 		}).format(date)
 	}
 
-	// Get user name (mock for now)
-	const userName = 'Usuario'
+	// Get user name from localStorage
+	const getUserName = (): string => {
+		try {
+			const userJson = localStorage.getItem('user')
+			if (userJson) {
+				const user = JSON.parse(userJson)
+				return user.name || 'Usuario'
+			}
+		} catch {
+			console.error('Failed to parse user data')
+		}
+		return 'Usuario'
+	}
+	const userName = getUserName()
 
 	return (
 		<div data-testid="dashboard-screen" className="min-h-screen p-6 bg-[var(--color-background)]">
@@ -94,7 +138,12 @@ export function DashboardScreen() {
 						</p>
 					</div>
 					<div className="flex items-center gap-3">
-						<PeriodSelector value={period} onChange={setPeriod} />
+						<PeriodSelector
+							value={period}
+							onChange={setPeriod}
+							customDateRange={customDateRange}
+							onCustomDateRangeChange={setCustomDateRange}
+						/>
 						<Button
 							data-testid="refresh-btn"
 							variant="secondary"

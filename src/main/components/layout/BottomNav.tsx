@@ -44,6 +44,14 @@ function GoalsIcon() {
 	)
 }
 
+function RulesIcon() {
+	return (
+		<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
+			<path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
+		</svg>
+	)
+}
+
 function SettingsIcon() {
 	return (
 		<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
@@ -57,6 +65,7 @@ const bottomNavItems: BottomNavItem[] = [
 	{ path: '/dashboard', label: 'Dashboard', icon: <DashboardIcon />, testId: 'dashboard' },
 	{ path: '/transactions', label: 'Transacoes', icon: <TransactionsIcon />, testId: 'transactions' },
 	{ path: '/categories', label: 'Categorias', icon: <CategoriesIcon />, testId: 'categories' },
+	{ path: '/rules', label: 'Regras', icon: <RulesIcon />, testId: 'rules' },
 	{ path: '/goals', label: 'Metas', icon: <GoalsIcon />, testId: 'goals' },
 	{ path: '/settings', label: 'Config', icon: <SettingsIcon />, testId: 'settings' },
 ]

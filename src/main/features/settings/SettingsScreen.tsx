@@ -47,9 +47,10 @@ export function SettingsScreen() {
 			// Continue with local cleanup even if API fails
 			// Backend endpoint may not be implemented yet
 		}
-		// Clear tokens and redirect to login
+		// Clear tokens and user data, redirect to login
 		localStorage.removeItem('access_token')
 		localStorage.removeItem('refresh_token')
+		localStorage.removeItem('user')
 		setIsDeleteAccountOpen(false)
 		navigate('/login')
 	}
@@ -81,6 +82,7 @@ export function SettingsScreen() {
 		}
 		localStorage.removeItem('access_token')
 		localStorage.removeItem('refresh_token')
+		localStorage.removeItem('user')
 		navigate('/login')
 	}
 

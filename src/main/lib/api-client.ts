@@ -33,11 +33,12 @@ export function getAuthHeader(): Record<string, string> {
 }
 
 /**
- * Clear all authentication tokens from localStorage
+ * Clear all authentication data from localStorage
  */
 export function clearAuthTokens(): void {
 	localStorage.removeItem('access_token')
 	localStorage.removeItem('refresh_token')
+	localStorage.removeItem('user')
 }
 
 /**

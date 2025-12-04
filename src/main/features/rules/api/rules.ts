@@ -1,17 +1,14 @@
 import type { CategoryRule, CreateRuleInput, PatternTestResult, MatchType } from '../types'
 import { API_BASE, authenticatedFetch } from '@main/lib'
 
-// Backend API response types
+// Backend API response types (flat structure from backend)
 interface CategoryRuleApiResponse {
 	id: string
 	pattern: string
 	category_id: string
-	category: {
-		id: string
-		name: string
-		icon: string
-		color: string
-	}
+	category_name: string
+	category_icon: string
+	category_color: string
 	priority: number
 	is_active: boolean
 	owner_type: string
@@ -41,9 +38,9 @@ function transformRule(apiRule: CategoryRuleApiResponse): CategoryRule {
 		pattern: apiRule.pattern,
 		matchType: detectMatchType(apiRule.pattern),
 		categoryId: apiRule.category_id,
-		categoryName: apiRule.category?.name || 'Unknown',
-		categoryIcon: apiRule.category?.icon || 'folder',
-		categoryColor: apiRule.category?.color || '#6B7280',
+		categoryName: apiRule.category_name || 'Unknown',
+		categoryIcon: apiRule.category_icon || 'folder',
+		categoryColor: apiRule.category_color || '#6B7280',
 		priority: apiRule.priority,
 		isActive: apiRule.is_active,
 		createdAt: apiRule.created_at,

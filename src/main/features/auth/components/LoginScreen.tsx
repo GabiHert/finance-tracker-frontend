@@ -41,6 +41,9 @@ export function LoginScreen() {
 		localStorage.setItem('access_token', response.access_token)
 		localStorage.setItem('refresh_token', response.refresh_token)
 
+		// Store user data
+		localStorage.setItem('user', JSON.stringify(response.user))
+
 		// Navigate to dashboard
 		navigate('/dashboard')
 	}

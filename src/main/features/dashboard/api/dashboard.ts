@@ -10,6 +10,16 @@ import type {
 	Period,
 } from '../types'
 
+export interface CustomDateRange {
+	startDate: string // YYYY-MM-DD format
+	endDate: string // YYYY-MM-DD format
+}
+
+export interface FetchDashboardOptions {
+	period: Period
+	customDateRange?: CustomDateRange
+}
+
 /**
  * Calculate date range based on period
  */
@@ -111,6 +121,27 @@ function getPreviousPeriodRange(period: Period): { startDate: string; endDate: s
 }
 
 /**
+ * Calculate previous period range for custom date range
+ */
+function getCustomPreviousPeriodRange(startDate: string, endDate: string): { startDate: string; endDate: string } {
+	const start = new Date(startDate)
+	const end = new Date(endDate)
+
+	// Calculate duration in days (inclusive)
+	const durationMs = end.getTime() - start.getTime()
+
+	// Previous period ends the day before the current period starts
+	const prevEnd = new Date(start.getTime() - 86400000) // day before start
+	const prevStart = new Date(prevEnd.getTime() - durationMs)
+
+	const formatDate = (d: Date) => d.toISOString().split('T')[0]
+	return {
+		startDate: formatDate(prevStart),
+		endDate: formatDate(prevEnd),
+	}
+}
+
+/**
  * Calculate percentage change between two values
  */
 function calculateChange(current: number, previous: number): number {
@@ -132,9 +163,33 @@ export interface DashboardData {
 /**
  * Fetch all dashboard data from the transactions API
  */
-export async function fetchDashboardData(period: Period): Promise<DashboardData> {
-	const { startDate, endDate } = getDateRangeForPeriod(period)
-	const previousPeriod = getPreviousPeriodRange(period)
+export async function fetchDashboardData(options: FetchDashboardOptions | Period): Promise<DashboardData> {
+	// Support both old signature (period only) and new signature (options object)
+	let period: Period
+	let customDateRange: CustomDateRange | undefined
+
+	if (typeof options === 'string') {
+		period = options
+	} else {
+		period = options.period
+		customDateRange = options.customDateRange
+	}
+
+	let startDate: string
+	let endDate: string
+	let previousPeriod: { startDate: string; endDate: string }
+
+	// Use custom date range if provided and period is 'custom'
+	if (period === 'custom' && customDateRange) {
+		startDate = customDateRange.startDate
+		endDate = customDateRange.endDate
+		previousPeriod = getCustomPreviousPeriodRange(startDate, endDate)
+	} else {
+		const dateRange = getDateRangeForPeriod(period)
+		startDate = dateRange.startDate
+		endDate = dateRange.endDate
+		previousPeriod = getPreviousPeriodRange(period)
+	}
 
 	// Fetch current period transactions with high limit to get all
 	const currentResult = await fetchTransactions({

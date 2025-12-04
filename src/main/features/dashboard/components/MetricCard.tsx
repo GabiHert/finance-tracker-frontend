@@ -8,9 +8,9 @@ interface MetricCardProps {
 	type: 'balance' | 'income' | 'expenses' | 'savings'
 }
 
-function TrendArrow({ direction }: { direction: 'up' | 'down' }) {
+function TrendArrow({ direction, isPositive }: { direction: 'up' | 'down'; isPositive: boolean }) {
 	return (
-		<span data-testid="trend-direction" className={direction === 'up' ? 'text-green-500' : 'text-red-500'}>
+		<span data-testid="trend-direction" className={isPositive ? 'text-green-500' : 'text-red-500'}>
 			{direction === 'up' ? (
 				<svg className="w-4 h-4 inline" viewBox="0 0 24 24" fill="currentColor">
 					<path d="M12 4l-8 8h6v8h4v-8h6z" />
@@ -26,8 +26,14 @@ function TrendArrow({ direction }: { direction: 'up' | 'down' }) {
 
 export function MetricCard({ testId, label, value, change, type }: MetricCardProps) {
 	const getValueColor = () => {
-		if (type === 'income' || type === 'savings') return 'text-green-500'
+		if (type === 'income') return 'text-green-500'
 		if (type === 'expenses') return 'text-red-500'
+		if (type === 'savings') {
+			return value >= 0 ? 'text-green-500' : 'text-red-500'
+		}
+		if (type === 'balance') {
+			return value >= 0 ? 'text-[var(--color-text)]' : 'text-red-500'
+		}
 		return 'text-[var(--color-text)]'
 	}
 
@@ -83,7 +89,7 @@ export function MetricCard({ testId, label, value, change, type }: MetricCardPro
 	return (
 		<div
 			data-testid={`metric-card-${type}`}
-			className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] p-4 flex flex-col"
+			className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] p-4 flex flex-col min-w-0"
 		>
 			<div data-testid="metric-card" className="flex items-center justify-between mb-2">
 				<span className="text-[var(--color-text-secondary)]">{getIcon()}</span>
@@ -92,7 +98,7 @@ export function MetricCard({ testId, label, value, change, type }: MetricCardPro
 						data-testid="trend-indicator"
 						className={`text-sm ${isPositiveChange(change, type) ? 'text-green-500' : 'text-red-500'}`}
 					>
-						<TrendArrow direction={getTrendDirection(change, type)} />
+						<TrendArrow direction={getTrendDirection(change, type)} isPositive={isPositiveChange(change, type)} />
 						{formatPercentage(Math.abs(change))}
 					</div>
 				)}
@@ -100,7 +106,10 @@ export function MetricCard({ testId, label, value, change, type }: MetricCardPro
 			<span data-testid="metric-label" className="text-sm text-[var(--color-text-secondary)] mb-1">
 				{label}
 			</span>
-			<span data-testid="metric-value" className={`text-2xl font-bold ${getValueColor()}`}>
+			<span
+				data-testid="metric-value"
+				className={`text-lg sm:text-xl lg:text-2xl font-bold ${getValueColor()} overflow-hidden`}
+			>
 				{type === 'expenses' ? '-' : ''}
 				{formatCurrency(value, type === 'expenses' || type === 'income')}
 			</span>

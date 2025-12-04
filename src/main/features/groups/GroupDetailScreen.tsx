@@ -18,6 +18,7 @@ import {
 } from './api'
 import type { Group, GroupTab, GroupCategory, GroupTransaction, GroupDashboardData, GroupInvite } from './types'
 import type { Period } from '@main/features/dashboard/types'
+import type { DateRange } from '@main/features/dashboard/components/PeriodSelector'
 
 function ArrowLeftIcon() {
 	return (
@@ -73,6 +74,16 @@ function UserIcon() {
 	)
 }
 
+/**
+ * Convert DD/MM/YYYY to YYYY-MM-DD format
+ */
+function convertDateFormat(dateStr: string): string {
+	if (!dateStr) return ''
+	const [day, month, year] = dateStr.split('/')
+	if (!day || !month || !year) return ''
+	return `${year}-${month}-${day}`
+}
+
 export function GroupDetailScreen() {
 	const { groupId } = useParams<{ groupId: string }>()
 	const navigate = useNavigate()
@@ -86,6 +97,10 @@ export function GroupDetailScreen() {
 	const [error, setError] = useState<string | null>(null)
 	const [activeTab, setActiveTab] = useState<GroupTab>('dashboard')
 	const [period, setPeriod] = useState<Period>('this_month')
+	const [customDateRange, setCustomDateRange] = useState<DateRange>({
+		startDate: '',
+		endDate: '',
+	})
 	const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
 	const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -148,24 +163,45 @@ export function GroupDetailScreen() {
 
 		try {
 			setIsDashboardLoading(true)
-			const dashData = await fetchGroupDashboard(groupId, period)
+
+			let dashData: GroupDashboardData
+
+			if (period === 'custom' && customDateRange.startDate && customDateRange.endDate) {
+				// Convert DD/MM/YYYY to YYYY-MM-DD for API
+				dashData = await fetchGroupDashboard({
+					groupId,
+					period,
+					customStartDate: convertDateFormat(customDateRange.startDate),
+					customEndDate: convertDateFormat(customDateRange.endDate),
+				})
+			} else {
+				dashData = await fetchGroupDashboard(groupId, period)
+			}
+
 			setDashboardData(dashData)
 		} catch (err) {
 			console.error('Error loading dashboard:', err)
 		} finally {
 			setIsDashboardLoading(false)
 		}
-	}, [groupId, period])
+	}, [groupId, period, customDateRange])
 
 	const handlePeriodChange = (newPeriod: Period) => {
 		setPeriod(newPeriod)
 	}
 
+	const handleCustomDateRangeChange = (range: DateRange) => {
+		setCustomDateRange(range)
+	}
+
 	useEffect(() => {
 		if (group) {
-			loadDashboard()
+			// Only load if not custom, or if custom and both dates are set
+			if (period !== 'custom' || (customDateRange.startDate && customDateRange.endDate)) {
+				loadDashboard()
+			}
 		}
-	}, [period, loadDashboard, group])
+	}, [period, customDateRange, loadDashboard, group])
 
 	useEffect(() => {
 		loadGroupData()
@@ -337,6 +373,8 @@ export function GroupDetailScreen() {
 							data={dashboardData}
 							period={period}
 							onPeriodChange={handlePeriodChange}
+							customDateRange={customDateRange}
+							onCustomDateRangeChange={handleCustomDateRangeChange}
 							onRefresh={loadDashboard}
 							isLoading={isDashboardLoading}
 						/>
