@@ -1,5 +1,4 @@
 import type { TrendDataPoint } from '../types'
-import { formatCurrency } from '../types'
 
 interface TrendsChartProps {
 	data: TrendDataPoint[]
@@ -35,18 +34,27 @@ const formatDateLabel = (dateString: string, dateRange: DateRange): string => {
 	if (dateRange.sameYear) {
 		const day = date.getDate()
 		const month = new Intl.DateTimeFormat('pt-BR', { month: 'short' }).format(date)
-		return `${day}/${month}`
+		// Remove trailing period from Portuguese month abbreviations
+		return `${day}/${month.replace('.', '')}`
 	}
 
-	// Default: show month abbreviation
-	return new Intl.DateTimeFormat('pt-BR', { month: 'short' }).format(date)
+	// Default: show month abbreviation (remove trailing period)
+	return new Intl.DateTimeFormat('pt-BR', { month: 'short' }).format(date).replace('.', '')
 }
 
 const shouldShowLabel = (index: number, totalPoints: number): boolean => {
-	if (totalPoints <= 7) return true // Show all labels if 7 or fewer points
-	if (totalPoints <= 14) return index % 2 === 0 // Show every other label
-	if (totalPoints <= 31) return index % 3 === 0 || index === totalPoints - 1 // Show every 3rd + last
-	return index % 5 === 0 || index === totalPoints - 1 // Show every 5th + last
+	// Always show first and last labels for context
+	if (index === 0 || index === totalPoints - 1) return true
+
+	// Target: maximum 5-6 visible labels to prevent overlap
+	// Chart usable width ~260px, each label needs ~50px minimum
+	if (totalPoints <= 5) return true
+
+	// Calculate step to distribute labels evenly
+	const targetLabels = 5
+	const step = Math.ceil((totalPoints - 1) / (targetLabels - 1))
+
+	return index % step === 0
 }
 
 export function TrendsChart({ data }: TrendsChartProps) {
