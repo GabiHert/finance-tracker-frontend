@@ -45,6 +45,32 @@ interface ImportWizardProps {
 
 type Step = 'upload' | 'categorize' | 'cc-preview' | 'success'
 
+type DetectedFormat = 'nubank' | 'nubank-cc' | 'inter' | 'itau' | 'unknown'
+
+const detectBankFormat = (headers: string[]): DetectedFormat => {
+	const headersLower = headers.map(h => h.toLowerCase().trim())
+
+	// Nubank Credit Card: exactly "date,title,amount" (3 columns)
+	const hasDate = headersLower.includes('date')
+	const hasTitle = headersLower.includes('title')
+	const hasAmount = headersLower.includes('amount')
+
+	if (hasDate && hasTitle && hasAmount && headers.length === 3) {
+		return 'nubank-cc'
+	}
+
+	// Nubank Checking: "Data,Valor,Identificador,Descrição" (4 columns)
+	const hasData = headersLower.some(h => h === 'data')
+	const hasDescricao = headersLower.some(h => h.includes('descri'))
+	const hasValor = headersLower.some(h => h === 'valor')
+
+	if (hasData && hasDescricao && hasValor) {
+		return 'nubank'
+	}
+
+	return 'unknown'
+}
+
 const BANK_FORMAT_OPTIONS = [
 	{ value: 'auto', label: 'Auto Detect' },
 	{ value: 'nubank', label: 'Nubank' },
@@ -129,7 +155,7 @@ export function ImportWizard({ isOpen, onClose, onImport, onCCImportSuccess, cat
 		} else {
 			// Auto-detect columns
 			dateIdx = headersLower.findIndex(h => h.includes('data') || h.includes('date'))
-			descIdx = headersLower.findIndex(h => h.includes('descri') || h.includes('description'))
+			descIdx = headersLower.findIndex(h => h.includes('descri') || h.includes('description') || h === 'title')
 			amountIdx = headersLower.findIndex(h => h.includes('valor') || h.includes('amount') || h.includes('value'))
 		}
 
@@ -194,8 +220,47 @@ export function ImportWizard({ isOpen, onClose, onImport, onCCImportSuccess, cat
 			const content = await selectedFile.text()
 			setRawContent(content)
 
-			// For Nubank Credit Card format
-			if (bankFormat === 'nubank-cc') {
+			// Auto-detect format when set to 'auto'
+			let effectiveFormat = bankFormat
+			if (bankFormat === 'auto') {
+				const lines = content.trim().split('\n')
+				if (lines.length >= 1) {
+					const headers = lines[0].split(',').map(h => h.trim())
+					const detectedFormat = detectBankFormat(headers)
+
+					if (detectedFormat === 'nubank-cc') {
+						// Use credit card workflow
+						const validation = validateCreditCardCSV(content)
+						if (!validation.valid) {
+							setError(validation.error || 'Invalid credit card file format')
+							setIsLoading(false)
+							return
+						}
+
+						const parsedLines = parseCreditCardCSV(content)
+						if (parsedLines.length === 0) {
+							setError('No transactions found in credit card file.')
+							setIsLoading(false)
+							return
+						}
+
+						setCCParsedLines(parsedLines)
+						const apiTransactions = toApiFormat(parsedLines)
+						setCCTransactions(apiTransactions)
+						setBankFormat('nubank-cc')
+						setIsLoading(false)
+						return
+					}
+
+					// For other detected formats, update effective format
+					if (detectedFormat !== 'unknown') {
+						effectiveFormat = detectedFormat
+					}
+				}
+			}
+
+			// For Nubank Credit Card format (explicit selection)
+			if (effectiveFormat === 'nubank-cc') {
 				const validation = validateCreditCardCSV(content)
 				if (!validation.valid) {
 					setError(validation.error || 'Formato de arquivo invalido para cartao de credito')
