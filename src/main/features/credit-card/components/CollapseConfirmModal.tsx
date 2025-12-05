@@ -34,7 +34,7 @@ export function CollapseConfirmModal({
 			title="Reverter Expansao"
 			size="sm"
 		>
-			<div data-testid="collapse-confirm-modal" className="space-y-4">
+			<div data-testid="collapse-confirm-dialog" className="space-y-4">
 				<div className="p-4 bg-[var(--color-warning-50)] border border-[var(--color-warning-200)] rounded-lg">
 					<div className="flex items-start gap-3">
 						<WarningIcon />
@@ -70,14 +70,14 @@ export function CollapseConfirmModal({
 				</div>
 
 				<div className="flex justify-end gap-3 pt-4 border-t border-[var(--color-border)]">
-					<Button variant="outline" onClick={onClose} disabled={isLoading}>
+					<Button variant="outline" onClick={onClose} disabled={isLoading} data-testid="cancel-collapse-btn">
 						Cancelar
 					</Button>
 					<Button
 						variant="danger"
 						onClick={onConfirm}
 						disabled={isLoading}
-						data-testid="collapse-confirm-btn"
+						data-testid="confirm-collapse-btn"
 					>
 						{isLoading ? 'Revertendo...' : 'Reverter'}
 					</Button>

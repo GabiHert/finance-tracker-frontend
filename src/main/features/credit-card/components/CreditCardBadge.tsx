@@ -17,8 +17,8 @@ export function CreditCardBadge({
 }: CreditCardBadgeProps) {
 	return (
 		<div className="flex items-center gap-1.5 flex-wrap">
-			{/* CC Badge */}
-			{billingCycle && (
+			{/* CC Badge - only show for CC transactions, not for expanded bills */}
+			{billingCycle && !isExpanded && (
 				<span
 					data-testid="cc-badge"
 					className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-purple-100 text-purple-800"
@@ -45,7 +45,7 @@ export function CreditCardBadge({
 					className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800"
 				>
 					<ExpandIcon />
-					{linkedCount && linkedCount > 0 ? `${linkedCount} itens` : 'Expandido'}
+					Expandido{linkedCount && linkedCount > 0 ? ` (${linkedCount})` : ''}
 				</span>
 			)}
 		</div>

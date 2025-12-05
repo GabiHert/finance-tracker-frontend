@@ -8,6 +8,7 @@ import { RecentTransactions } from './components/RecentTransactions'
 import { GoalsProgress } from './components/GoalsProgress'
 import { AlertsBanner } from './components/AlertsBanner'
 import { fetchDashboardData, type DashboardData, type CustomDateRange } from './api/dashboard'
+import { CreditCardStatusCard, getCreditCardStatus, type CreditCardStatus } from '@main/features/credit-card'
 import type { Period } from './types'
 
 function RefreshIcon() {
@@ -31,6 +32,16 @@ function convertDateFormat(dateStr: string): string {
 	return `${year}-${month}-${day}`
 }
 
+/**
+ * Get current month in YYYY-MM format
+ */
+function getCurrentMonth(): string {
+	const now = new Date()
+	const year = now.getFullYear()
+	const month = String(now.getMonth() + 1).padStart(2, '0')
+	return `${year}-${month}`
+}
+
 export function DashboardScreen() {
 	const [period, setPeriod] = useState<Period>('this_month')
 	const [customDateRange, setCustomDateRange] = useState<DateRange>({
@@ -41,6 +52,7 @@ export function DashboardScreen() {
 	const [lastUpdated, setLastUpdated] = useState(new Date())
 	const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
 	const [error, setError] = useState<string | null>(null)
+	const [ccStatus, setCcStatus] = useState<CreditCardStatus | null>(null)
 
 	const loadDashboardData = useCallback(async () => {
 		setIsLoading(true)
@@ -61,8 +73,12 @@ export function DashboardScreen() {
 				options = { period }
 			}
 
-			const data = await fetchDashboardData(options)
+			const [data, creditCardStatus] = await Promise.all([
+				fetchDashboardData(options),
+				getCreditCardStatus().catch(() => null), // Don't fail if CC status fails
+			])
 			setDashboardData(data)
+			setCcStatus(creditCardStatus)
 			setLastUpdated(new Date())
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Erro ao carregar dashboard')
@@ -216,6 +232,16 @@ export function DashboardScreen() {
 						<DonutChart data={categoryBreakdown} />
 					</div>
 				</div>
+
+				{/* Credit Card Status Card */}
+				{ccStatus && (
+					<div className="mb-6">
+						<CreditCardStatusCard
+							status={ccStatus}
+							month={getCurrentMonth()}
+						/>
+					</div>
+				)}
 
 				{/* Recent Transactions and Goals */}
 				<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

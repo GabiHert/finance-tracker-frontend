@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Transaction } from '../types'
 import { getIconComponent } from '@main/components/ui/IconPicker'
+import { CreditCardBadge } from '@main/features/credit-card/components/CreditCardBadge'
 
 export interface TransactionRowProps {
 	transaction: Transaction
@@ -8,6 +9,7 @@ export interface TransactionRowProps {
 	onSelect: (id: string) => void
 	onEdit: (transaction: Transaction) => void
 	onDelete: (id: string) => void
+	onCollapse?: (id: string) => void
 }
 
 function EditIcon() {
@@ -45,12 +47,27 @@ function DeleteIcon() {
 	)
 }
 
+function CollapseIcon() {
+	return (
+		<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+			<path
+				d="M4 6L8 10L12 6"
+				stroke="currentColor"
+				strokeWidth="1.5"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+			/>
+		</svg>
+	)
+}
+
 export function TransactionRow({
 	transaction,
 	isSelected,
 	onSelect,
 	onEdit,
 	onDelete,
+	onCollapse,
 }: TransactionRowProps) {
 	const [isHovered, setIsHovered] = useState(false)
 
@@ -75,9 +92,16 @@ export function TransactionRow({
 		onDelete(transaction.id)
 	}
 
+	const handleCollapse = (e: React.MouseEvent) => {
+		e.stopPropagation()
+		onCollapse?.(transaction.id)
+	}
+
+	const isExpandedBill = transaction.isExpandedBill
+
 	return (
 		<div
-			data-testid="transaction-row"
+			data-testid={isExpandedBill ? 'expanded-bill' : 'transaction-row'}
 			data-transaction-type={`transaction-row-${transaction.type}`}
 			className={`
 				flex items-center gap-4 p-4
@@ -86,6 +110,7 @@ export function TransactionRow({
 				transition-colors duration-150
 				cursor-pointer
 				${isSelected ? 'bg-[var(--color-primary-50)]' : ''}
+				${isExpandedBill ? 'bg-[var(--color-surface)] opacity-70' : ''}
 			`.replace(/\s+/g, ' ').trim()}
 			onClick={handleClick}
 			onMouseEnter={() => setIsHovered(true)}
@@ -133,6 +158,17 @@ export function TransactionRow({
 					>
 						{transaction.categoryName}
 					</span>
+					{/* CC Badge */}
+					{(transaction.billingCycle || transaction.installmentCurrent || transaction.isExpandedBill) && (
+						<CreditCardBadge
+							billingCycle={transaction.billingCycle}
+							hasInstallment={!!transaction.installmentCurrent}
+							installmentCurrent={transaction.installmentCurrent}
+							installmentTotal={transaction.installmentTotal}
+							isExpanded={transaction.isExpandedBill}
+							linkedCount={transaction.linkedTransactionCount}
+						/>
+					)}
 				</div>
 				<div className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
 					<span data-testid="transaction-date">{transaction.date}</span>
@@ -168,9 +204,21 @@ export function TransactionRow({
 				className={`
 					flex items-center gap-2
 					transition-opacity duration-150
-					${isHovered ? 'opacity-100' : 'opacity-0'}
+					${isHovered || isExpandedBill ? 'opacity-100' : 'opacity-0'}
 				`.replace(/\s+/g, ' ').trim()}
 			>
+				{isExpandedBill && onCollapse && (
+					<button
+						type="button"
+						onClick={handleCollapse}
+						data-testid="collapse-btn"
+						className="p-2 text-[var(--color-text-muted)] hover:text-[var(--color-warning)] hover:bg-[var(--color-warning-50)] rounded-[var(--radius-sm)] transition-colors"
+						aria-label="Collapse expanded bill"
+						title="Recolher fatura expandida"
+					>
+						<CollapseIcon />
+					</button>
+				)}
 				<button
 					type="button"
 					onClick={handleEdit}

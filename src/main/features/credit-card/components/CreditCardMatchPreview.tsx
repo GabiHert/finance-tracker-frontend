@@ -66,7 +66,7 @@ export function CreditCardMatchPreview({
 	const totalTransactions = transactions.filter((t) => !t.isPaymentReceived).length
 
 	return (
-		<div data-testid="cc-match-preview" className="space-y-6">
+		<div data-testid="cc-matching-preview" className="space-y-6">
 			{/* Summary */}
 			<div className="bg-[var(--color-surface)] rounded-lg p-4 border border-[var(--color-border)]">
 				<h3 className="font-semibold text-[var(--color-text)] mb-3">
@@ -87,7 +87,7 @@ export function CreditCardMatchPreview({
 					</div>
 					<div>
 						<span className="text-[var(--color-text-secondary)]">Faturas encontradas:</span>
-						<span className="ml-2 font-medium text-[var(--color-text)]">
+						<span data-testid="match-count" className="ml-2 font-medium text-[var(--color-text)]">
 							{matches.length}
 						</span>
 					</div>
@@ -118,7 +118,7 @@ export function CreditCardMatchPreview({
 			)}
 
 			{/* Matches */}
-			{matches.length > 0 && (
+			{matches.length > 0 ? (
 				<div>
 					<h4 className="font-medium text-[var(--color-text)] mb-3">
 						Faturas para vincular
@@ -144,26 +144,26 @@ export function CreditCardMatchPreview({
 										/>
 										<div>
 											<p className="font-medium text-[var(--color-text)]">
-												Pagamento de fatura - {formatDate(match.billDate)}
+												Pagamento de fatura - <span data-testid="match-bill-date">{formatDate(match.billDate)}</span>
 											</p>
 											<p className="text-sm text-[var(--color-text-secondary)] mt-1">
-												Valor da fatura: {formatCurrency(match.billAmount)}
+												Valor da fatura: <span data-testid="match-bill-amount">{formatCurrency(match.billAmount)}</span>
 											</p>
 											<p className="text-sm text-[var(--color-text-secondary)]">
 												Valor no extrato CC: {formatCurrency(match.ccTotal)}
 											</p>
 											{match.difference > 0 && (
 												<p
-													data-testid="cc-match-difference"
+													data-testid="match-difference-warning"
 													className="text-sm text-[var(--color-warning)] mt-1"
 												>
-													Diferenca: {formatCurrency(match.difference)}
+													<span data-testid="match-difference">Diferenca: {formatCurrency(match.difference)}</span>
 												</p>
 											)}
 										</div>
 									</div>
 									<span
-										data-testid="cc-match-count"
+										data-testid="match-item-count"
 										className="text-sm text-[var(--color-text-secondary)] bg-[var(--color-surface)] px-2 py-1 rounded"
 									>
 										{match.matchedTransactionCount} itens
@@ -172,6 +172,10 @@ export function CreditCardMatchPreview({
 							</div>
 						))}
 					</div>
+				</div>
+			) : (
+				<div data-testid="no-matches-message" className="text-center py-6 text-[var(--color-text-secondary)]">
+					Nenhuma fatura encontrada para vincular. As transacoes serao importadas sem vinculo.
 				</div>
 			)}
 
@@ -202,7 +206,7 @@ export function CreditCardMatchPreview({
 				<Button
 					onClick={handleConfirm}
 					disabled={isLoading || (matches.length > 0 && selectedMatches.size === 0)}
-					data-testid="cc-confirm-import-btn"
+					data-testid="confirm-import-btn"
 				>
 					{isLoading ? 'Importando...' : 'Confirmar Importacao'}
 				</Button>

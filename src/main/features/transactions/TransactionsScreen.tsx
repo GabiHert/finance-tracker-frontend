@@ -21,6 +21,13 @@ import type { Transaction, TransactionFilters, TransactionFormData } from './typ
 import { fetchCategories } from '@main/features/categories/api/categories'
 import type { Category } from '@main/features/categories/types'
 import { getIconComponent } from '@main/components/ui/IconPicker'
+import {
+	CCMismatchBanner,
+	getCreditCardStatus,
+	collapseCreditCardExpansion,
+	CollapseConfirmModal,
+	type CreditCardStatus,
+} from '@main/features/credit-card'
 
 export function TransactionsScreen() {
 	const [searchParams] = useSearchParams()
@@ -48,6 +55,10 @@ export function TransactionsScreen() {
 	const [isImportModalOpen, setIsImportModalOpen] = useState(false)
 	const [isSaving, setIsSaving] = useState(false)
 	const [categories, setCategories] = useState<Category[]>([])
+	const [ccStatus, setCcStatus] = useState<CreditCardStatus | null>(null)
+	const [collapseModalOpen, setCollapseModalOpen] = useState(false)
+	const [collapsingTransaction, setCollapsingTransaction] = useState<Transaction | null>(null)
+	const [isCollapsing, setIsCollapsing] = useState(false)
 
 	// Load categories from API
 	const loadCategories = useCallback(async () => {
@@ -56,6 +67,16 @@ export function TransactionsScreen() {
 			setCategories(fetchedCategories)
 		} catch (err) {
 			console.error('Error loading categories:', err)
+		}
+	}, [])
+
+	// Load credit card status
+	const loadCcStatus = useCallback(async () => {
+		try {
+			const status = await getCreditCardStatus()
+			setCcStatus(status)
+		} catch (err) {
+			console.error('Error loading CC status:', err)
 		}
 	}, [])
 
@@ -90,6 +111,10 @@ export function TransactionsScreen() {
 	useEffect(() => {
 		loadCategories()
 	}, [loadCategories])
+
+	useEffect(() => {
+		loadCcStatus()
+	}, [loadCcStatus])
 
 	// Filter transactions locally for search (API handles type and category filters)
 	const filteredTransactions = useMemo(() => {
@@ -231,6 +256,32 @@ export function TransactionsScreen() {
 		setShowBulkCategorizeModal(true)
 	}, [])
 
+	const handleCollapse = useCallback((id: string) => {
+		const transaction = transactions.find(t => t.id === id)
+		if (transaction) {
+			setCollapsingTransaction(transaction)
+			setCollapseModalOpen(true)
+		}
+	}, [transactions])
+
+	const confirmCollapse = useCallback(async () => {
+		if (!collapsingTransaction) return
+
+		setIsCollapsing(true)
+		try {
+			await collapseCreditCardExpansion(collapsingTransaction.id)
+			showToast('success', 'Recolhido com sucesso')
+			setCollapseModalOpen(false)
+			setCollapsingTransaction(null)
+			await loadTransactions()
+			await loadCcStatus()
+		} catch (err) {
+			showToast('error', err instanceof Error ? err.message : 'Erro ao recolher fatura')
+		} finally {
+			setIsCollapsing(false)
+		}
+	}, [collapsingTransaction, loadTransactions, loadCcStatus, showToast])
+
 	const handleBulkCategorizeApply = useCallback(async (categoryId: string) => {
 		setIsSaving(true)
 		try {
@@ -303,7 +354,15 @@ export function TransactionsScreen() {
 		// from empty to normal (which would remount the ImportWizard component)
 		setIsImportModalOpen(false)
 		await loadTransactions()
-	}, [loadTransactions])
+		await loadCcStatus()
+	}, [loadTransactions, loadCcStatus])
+
+	const handleCCImportSuccess = useCallback(async () => {
+		// Load both transactions and CC status when CC import succeeds
+		// This ensures the mismatch banner shows immediately after import
+		await loadTransactions()
+		await loadCcStatus()
+	}, [loadTransactions, loadCcStatus])
 
 	const handleImportComplete = useCallback(async (importedTransactions: unknown[]) => {
 		interface ImportedTransaction {
@@ -556,6 +615,16 @@ export function TransactionsScreen() {
 						</div>
 					</div>
 
+					{/* CC Mismatch Banner */}
+					{ccStatus?.hasMismatches && (
+						<div className="px-6 pt-4">
+							<CCMismatchBanner
+								unmatchedAmount={ccStatus.unmatchedAmount}
+								onImportClick={handleImport}
+							/>
+						</div>
+					)}
+
 					{/* Filters */}
 					<FilterBar
 						filters={filters}
@@ -632,6 +701,7 @@ export function TransactionsScreen() {
 										onSelect={handleSelect}
 										onEdit={handleEditTransaction}
 										onDelete={handleDeleteTransaction}
+										onCollapse={handleCollapse}
 									/>
 								))}
 							</div>
@@ -663,6 +733,7 @@ export function TransactionsScreen() {
 				isOpen={isImportModalOpen}
 				onClose={handleImportClose}
 				onImport={handleImportComplete}
+				onCCImportSuccess={handleCCImportSuccess}
 				categoryOptions={categoryOptions}
 			/>
 
@@ -719,6 +790,22 @@ export function TransactionsScreen() {
 				categoryOptions={categoryOptions}
 				selectedTransactionDescriptions={selectedTransactionDescriptions}
 			/>
+
+			{/* Collapse Confirm Modal */}
+			{collapsingTransaction && (
+				<CollapseConfirmModal
+					isOpen={collapseModalOpen}
+					onClose={() => {
+						setCollapseModalOpen(false)
+						setCollapsingTransaction(null)
+					}}
+					onConfirm={confirmCollapse}
+					billDate={collapsingTransaction.date}
+					billAmount={collapsingTransaction.amount}
+					linkedCount={collapsingTransaction.linkedTransactionCount || 0}
+					isLoading={isCollapsing}
+				/>
+			)}
 		</>
 	)
 }

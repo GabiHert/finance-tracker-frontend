@@ -38,7 +38,7 @@ export function CCMismatchBanner({
 				<WarningIcon />
 				<div>
 					<p className="font-medium text-[var(--color-warning)]">
-						Transacoes de cartao nao vinculadas
+						Cartão de crédito não vinculado
 					</p>
 					<p className="text-sm text-[var(--color-text-secondary)]">
 						{unmatchedCount !== undefined ? (
@@ -47,7 +47,7 @@ export function CCMismatchBanner({
 								estao vinculadas a nenhuma fatura
 							</>
 						) : (
-							<>{formatCurrency(unmatchedAmount)} em transacoes nao vinculadas</>
+							<>{formatCurrency(unmatchedAmount)} em transacoes sem vínculo</>
 						)}
 					</p>
 				</div>
@@ -65,7 +65,7 @@ export function CCMismatchBanner({
 				)}
 				<button
 					onClick={handleDismiss}
-					data-testid="cc-banner-dismiss-btn"
+					data-testid="dismiss-banner-btn"
 					className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)] rounded transition-colors"
 					aria-label="Dismiss"
 				>

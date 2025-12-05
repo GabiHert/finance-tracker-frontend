@@ -134,7 +134,8 @@ export function ToastProvider({ children }: ToastProviderProps) {
 		const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 		const newToast: Toast = { id, type, message, duration }
 
-		setToasts((prev) => [...prev, newToast])
+		// Clear existing toasts of the same type to prevent stacking
+		setToasts((prev) => [...prev.filter((t) => t.type !== type), newToast])
 
 		if (duration > 0) {
 			setTimeout(() => {

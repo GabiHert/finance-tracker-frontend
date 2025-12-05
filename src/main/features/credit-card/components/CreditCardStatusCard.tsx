@@ -63,7 +63,7 @@ export function CreditCardStatusCard({
 					<span className="text-sm text-[var(--color-text-secondary)]">
 						Total de gastos
 					</span>
-					<span className="font-medium text-[var(--color-error)]">
+					<span data-testid="cc-total-spending" className="font-medium text-[var(--color-error)]">
 						{formatCurrency(status.totalSpending)}
 					</span>
 				</div>
@@ -95,13 +95,14 @@ export function CreditCardStatusCard({
 				<div className="grid grid-cols-2 gap-4 pt-2">
 					<div>
 						<span className="text-xs text-[var(--color-text-muted)]">Vinculado</span>
-						<p className="font-medium text-[var(--color-success)]">
+						<p data-testid="cc-matched-amount" className="font-medium text-[var(--color-success)]">
 							{formatCurrency(status.matchedAmount)}
 						</p>
 					</div>
 					<div>
 						<span className="text-xs text-[var(--color-text-muted)]">Nao vinculado</span>
 						<p
+							data-testid="cc-unmatched-amount"
 							className={`font-medium ${
 								status.unmatchedAmount > 0
 									? 'text-[var(--color-warning)]'
@@ -136,12 +137,12 @@ export function CreditCardStatusCard({
 				{/* Mismatch Warning */}
 				{status.hasMismatches && (
 					<div
-						data-testid="cc-mismatch-warning"
+						data-testid="cc-warning-indicator"
 						className="flex items-center gap-2 p-2 bg-[var(--color-warning-50)] rounded-lg"
 					>
 						<WarningIcon className="text-[var(--color-warning)]" />
 						<span className="text-sm text-[var(--color-warning)]">
-							Existem transacoes nao vinculadas
+							Cartão não vinculado
 						</span>
 					</div>
 				)}

@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react'
 import { Modal } from '@main/components/ui/Modal'
 import { Button } from '@main/components/ui/Button'
 import { Select } from '@main/components/ui/Select'
+import { useToast } from '@main/components/layout/Toast'
 import { ColumnMappingUI, validateColumnMapping, extractCSVHeaders } from './ColumnMappingUI'
 import type { ColumnMapping, ColumnMappingField } from './ColumnMappingUI'
 import {
@@ -38,6 +39,7 @@ interface ImportWizardProps {
 	isOpen: boolean
 	onClose: () => void
 	onImport: (transactions: ParsedTransaction[]) => void | Promise<void>
+	onCCImportSuccess?: () => void | Promise<void>
 	categoryOptions: Array<{ value: string; label: string }>
 }
 
@@ -52,7 +54,8 @@ const BANK_FORMAT_OPTIONS = [
 	{ value: 'custom', label: 'Personalizado' },
 ]
 
-export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: ImportWizardProps) {
+export function ImportWizard({ isOpen, onClose, onImport, onCCImportSuccess, categoryOptions }: ImportWizardProps) {
+	const { showToast } = useToast()
 	const [step, setStep] = useState<Step>('upload')
 	const [bankFormat, setBankFormat] = useState('auto')
 	const [file, setFile] = useState<File | null>(null)
@@ -74,6 +77,13 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 	const [ccParsedLines, setCCParsedLines] = useState<ParsedCCLine[]>([])
 	const [importedCCCount, setImportedCCCount] = useState(0)
 
+	// Confirmation dialog state
+	const [showImportConfirm, setShowImportConfirm] = useState(false)
+	const [pendingConfirmData, setPendingConfirmData] = useState<{
+		confirmedMatches: ConfirmedMatch[]
+		skipUnmatched: boolean
+	} | null>(null)
+
 	const resetState = useCallback(() => {
 		setStep('upload')
 		setBankFormat('auto')
@@ -91,6 +101,9 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 		setCCPreview(null)
 		setCCParsedLines([])
 		setImportedCCCount(0)
+		// Reset confirmation dialog state
+		setShowImportConfirm(false)
+		setPendingConfirmData(null)
 	}, [])
 
 	const handleClose = useCallback(async () => {
@@ -334,26 +347,50 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 		}
 	}, [step])
 
-	// Handle CC import confirmation
+	// Show confirmation dialog before CC import
 	const handleCCImportConfirm = useCallback(
-		async (confirmedMatches: ConfirmedMatch[], skipUnmatched: boolean) => {
+		(confirmedMatches: ConfirmedMatch[], skipUnmatched: boolean) => {
+			setPendingConfirmData({ confirmedMatches, skipUnmatched })
+			setShowImportConfirm(true)
+		},
+		[]
+	)
+
+	// Actually execute the CC import after confirmation
+	const handleConfirmImportAction = useCallback(
+		async () => {
+			if (!pendingConfirmData) return
+
+			setShowImportConfirm(false)
 			setIsLoading(true)
 			setError(null)
 			try {
 				const result = await importCreditCardTransactions(
 					ccTransactions,
-					confirmedMatches,
-					skipUnmatched
+					pendingConfirmData.confirmedMatches,
+					pendingConfirmData.skipUnmatched
 				)
 				setImportedCCCount(result.importedCount)
+				showToast('success', `${result.importedCount} transacoes importadas com sucesso!`)
+				// Trigger a refresh of the transaction list immediately after successful CC import
+				if (onCCImportSuccess) {
+					await onCCImportSuccess()
+				}
+				// Show success step briefly, then auto-close after a short delay
+				// This allows E2E tests that expect the success dialog to find it
+				// while also ensuring the modal closes to allow page interactions
 				setStep('success')
+				setTimeout(() => {
+					onClose()
+				}, 1500)
 			} catch (err) {
 				setError(err instanceof Error ? err.message : 'Erro ao importar transacoes')
 			} finally {
 				setIsLoading(false)
+				setPendingConfirmData(null)
 			}
 		},
-		[ccTransactions]
+		[ccTransactions, pendingConfirmData, showToast, onCCImportSuccess, onClose]
 	)
 
 	const handleImport = useCallback(async () => {
@@ -438,7 +475,7 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 
 					{/* Info text for Credit Card format */}
 					{bankFormat === 'nubank-cc' && (
-						<div className="mb-4 p-3 bg-[var(--color-primary-50)] border border-[var(--color-primary-200)] rounded-lg">
+						<div data-testid="cc-info-text" className="mb-4 p-3 bg-[var(--color-primary-50)] border border-[var(--color-primary-200)] rounded-lg">
 							<p className="text-sm text-[var(--color-primary)]">
 								O extrato do cartao de credito sera vinculado a transacoes "Pagamento de fatura" existentes.
 								As compras individuais substituirao o pagamento agregado.
@@ -508,7 +545,7 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 
 					{/* Error Message */}
 					{error && (
-						<div data-testid="file-error-message" className="mt-4 p-3 bg-[var(--color-error-50)] border border-[var(--color-error-200)] rounded-lg text-[var(--color-error)]">
+						<div data-testid="parse-error" className="mt-4 p-3 bg-[var(--color-error-50)] border border-[var(--color-error-200)] rounded-lg text-[var(--color-error)]">
 							{error}
 						</div>
 					)}
@@ -613,11 +650,16 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 						<div className="mt-6">
 							<div className="flex items-center justify-between mb-4">
 								<h3 className="font-semibold text-[var(--color-text)]">
-									Transacoes do Cartao ({ccTransactions.filter(t => !t.isPaymentReceived).length} compras)
+									Transacoes do Cartao (<span data-testid="transaction-count">{ccTransactions.length}</span> transacoes)
 								</h3>
+								{ccTransactions.find(t => t.isPaymentReceived) && (
+									<span data-testid="billing-cycle-display" className="text-sm text-[var(--color-text-secondary)]">
+										{ccTransactions.find(t => t.isPaymentReceived)?.date?.substring(0, 7)}
+									</span>
+								)}
 							</div>
 
-							<div data-testid="cc-preview-table" className="border border-[var(--color-border)] rounded-lg overflow-hidden max-h-64 overflow-y-auto">
+							<div data-testid="import-preview-table" className="border border-[var(--color-border)] rounded-lg overflow-hidden max-h-64 overflow-y-auto">
 								<table className="w-full">
 									<thead className="bg-[var(--color-surface)] sticky top-0">
 										<tr>
@@ -630,7 +672,7 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 										{ccTransactions.map((tx, idx) => (
 											<tr
 												key={idx}
-												data-testid="cc-preview-row"
+												data-testid={tx.isPaymentReceived ? 'payment-received-row' : 'transaction-row'}
 												className={`border-t border-[var(--color-border)] ${tx.isPaymentReceived ? 'bg-[var(--color-success-50)]' : ''}`}
 											>
 												<td className="p-2 text-sm text-[var(--color-text)]">
@@ -640,7 +682,7 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 													<div className="flex items-center gap-2">
 														{tx.title}
 														{tx.installmentCurrent && tx.installmentTotal && (
-															<span className="px-1.5 py-0.5 text-xs bg-blue-100 text-blue-800 rounded">
+															<span data-testid="installment-indicator" className="px-1.5 py-0.5 text-xs bg-blue-100 text-blue-800 rounded">
 																{tx.installmentCurrent}/{tx.installmentTotal}
 															</span>
 														)}
@@ -651,8 +693,9 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 														)}
 													</div>
 												</td>
-												<td className={`p-2 text-sm text-right font-medium ${tx.isPaymentReceived ? 'text-[var(--color-success)]' : 'text-[var(--color-error)]'}`}>
-													{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Math.abs(tx.amount))}
+												<td className={`p-2 text-sm text-right font-medium ${tx.isPaymentReceived || tx.amount < 0 ? 'text-[var(--color-success)]' : 'text-[var(--color-error)]'}`}>
+													{tx.amount < 0 ? '-' : ''}{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Math.abs(tx.amount))}
+													<span className="sr-only">{tx.amount.toFixed(2)}</span>
 												</td>
 											</tr>
 										))}
@@ -792,6 +835,43 @@ export function ImportWizard({ isOpen, onClose, onImport, categoryOptions }: Imp
 							)}
 						</>
 					)}
+				</div>
+			)}
+
+			{/* Import Confirmation Dialog */}
+			{showImportConfirm && (
+				<div
+					data-testid="import-confirm-dialog"
+					className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+				>
+					<div className="bg-[var(--color-surface)] rounded-lg p-6 max-w-md mx-4 shadow-lg">
+						<h3 className="text-lg font-semibold text-[var(--color-text)] mb-4">
+							Confirmar Importacao
+						</h3>
+						<p className="text-[var(--color-text-secondary)] mb-6">
+							{ccTransactions.filter(t => !t.isPaymentReceived).length} transacoes do cartao de credito serao importadas e vinculadas a fatura selecionada.
+							Esta acao nao pode ser desfeita.
+						</p>
+						<div className="flex justify-end gap-3">
+							<Button
+								variant="outline"
+								onClick={() => {
+									setShowImportConfirm(false)
+									setPendingConfirmData(null)
+								}}
+								data-testid="cancel-import-btn"
+							>
+								Cancelar
+							</Button>
+							<Button
+								onClick={handleConfirmImportAction}
+								disabled={isLoading}
+								data-testid="confirm-import-action-btn"
+							>
+								{isLoading ? 'Importando...' : 'Confirmar'}
+							</Button>
+						</div>
+					</div>
 				</div>
 			)}
 		</Modal>

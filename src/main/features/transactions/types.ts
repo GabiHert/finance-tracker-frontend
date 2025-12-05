@@ -13,6 +13,12 @@ export interface Transaction {
 	notes?: string
 	createdAt: string
 	updatedAt: string
+	// Credit card import fields
+	billingCycle?: string // "YYYY-MM" format if imported from CC statement
+	isExpandedBill?: boolean // True if this is a bill payment that has been expanded
+	linkedTransactionCount?: number // Number of CC transactions linked to this bill
+	installmentCurrent?: number // Current installment number
+	installmentTotal?: number // Total installments
 }
 
 export interface TransactionFilters {

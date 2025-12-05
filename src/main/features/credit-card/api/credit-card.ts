@@ -11,84 +11,114 @@ import type {
 
 // API Response Types (snake_case from backend)
 interface BillMatchApiResponse {
-	bill_transaction_id: string
-	bill_date: string
-	bill_amount: string
-	cc_total: string
-	difference: string
-	matched_transaction_count: number
-	payment_received_date?: string
+	bill_payment_id: string
+	bill_payment_date: string
+	bill_payment_amount: string
+	bill_description: string
+	cc_payment_date: string
+	cc_payment_amount: string
+	amount_difference: string
+	days_difference: number
+	match_score: number
 }
 
 interface ImportPreviewApiResponse {
-	matches: BillMatchApiResponse[]
-	unmatched_transactions: number
-	total_cc_amount: string
-	warnings: string[]
-}
-
-interface ZeroedBillApiResponse {
-	transaction_id: string
-	original_amount: string
-	linked_transactions: number
+	billing_cycle: string
+	total_transactions: number
+	total_amount: string
+	potential_matches: BillMatchApiResponse[]
+	transactions_to_import: {
+		date: string
+		description: string
+		amount: number
+		installment_current?: number
+		installment_total?: number
+	}[]
+	payment_received_amount: string
+	has_existing_import: boolean
 }
 
 interface ImportResultApiResponse {
 	imported_count: number
-	matched_count: number
-	unmatched_count: number
-	zeroed_bills: ZeroedBillApiResponse[]
-	warnings: string[]
+	categorized_count: number
+	bill_payment_id: string
+	billing_cycle: string
+	original_bill_amount: string
+	imported_at: string
+	transactions: {
+		id: string
+		date: string
+		description: string
+		amount: string
+		category_id?: string
+	}[]
 }
 
 interface CollapseResultApiResponse {
+	bill_payment_id: string
 	restored_amount: string
 	deleted_transactions: number
-	transaction_id: string
+	collapsed_at: string
 }
 
 interface CreditCardStatusApiResponse {
-	total_spending: string
-	matched_amount: string
-	unmatched_amount: string
-	expanded_bills: number
-	pending_bills: number
-	has_mismatches: boolean
+	billing_cycle: string
+	is_expanded: boolean
+	bill_payment_id?: string
+	bill_payment_date?: string
+	original_amount?: string
+	current_amount?: string
+	linked_transactions: number
+	expanded_at?: string
+	transactions_summary?: {
+		id: string
+		date: string
+		description: string
+		amount: string
+		category_id?: string
+		is_hidden: boolean
+	}[]
 }
 
 // Transform functions
 function transformBillMatch(apiMatch: BillMatchApiResponse): BillMatch {
 	return {
-		billTransactionId: apiMatch.bill_transaction_id,
-		billDate: apiMatch.bill_date,
-		billAmount: parseFloat(apiMatch.bill_amount),
-		ccTotal: parseFloat(apiMatch.cc_total),
-		difference: parseFloat(apiMatch.difference),
-		matchedTransactionCount: apiMatch.matched_transaction_count,
-		paymentReceivedDate: apiMatch.payment_received_date,
+		billTransactionId: apiMatch.bill_payment_id,
+		billDate: apiMatch.bill_payment_date,
+		billAmount: parseFloat(apiMatch.bill_payment_amount),
+		ccTotal: parseFloat(apiMatch.cc_payment_amount),
+		difference: parseFloat(apiMatch.amount_difference),
+		matchedTransactionCount: 1, // Each match represents one bill
+		paymentReceivedDate: apiMatch.cc_payment_date,
 	}
 }
 
 function transformImportPreview(apiPreview: ImportPreviewApiResponse): ImportPreview {
+	const potentialMatches = apiPreview.potential_matches || []
+	const transactionsToImport = apiPreview.transactions_to_import || []
+
+	// Calculate unmatched count - transactions to import that aren't the payment received
+	const unmatchedCount = transactionsToImport.length - (potentialMatches.length > 0 ? 1 : 0)
+
 	return {
-		matches: apiPreview.matches.map(transformBillMatch),
-		unmatchedTransactionCount: apiPreview.unmatched_transactions,
-		totalCCAmount: parseFloat(apiPreview.total_cc_amount),
-		warnings: apiPreview.warnings || [],
+		matches: potentialMatches.map(transformBillMatch),
+		unmatchedTransactionCount: Math.max(0, unmatchedCount),
+		totalCCAmount: parseFloat(apiPreview.total_amount || '0'),
+		warnings: apiPreview.has_existing_import ? ['This billing cycle has already been imported'] : [],
 	}
 }
 
 function transformImportResult(apiResult: ImportResultApiResponse): ImportResult {
 	return {
 		importedCount: apiResult.imported_count,
-		matchedCount: apiResult.matched_count,
-		unmatchedCount: apiResult.unmatched_count,
-		zeroedBills: apiResult.zeroed_bills.map((bill) => ({
-			transactionId: bill.transaction_id,
-			originalAmount: parseFloat(bill.original_amount),
-			linkedTransactions: bill.linked_transactions,
-		})),
-		warnings: apiResult.warnings || [],
+		matchedCount: 1, // One bill matched
+		unmatchedCount: 0,
+		zeroedBills: [{
+			transactionId: apiResult.bill_payment_id,
+			originalAmount: parseFloat(apiResult.original_bill_amount),
+			linkedTransactions: apiResult.imported_count,
+		}],
+		warnings: [],
 	}
 }
 
@@ -96,18 +126,59 @@ function transformCollapseResult(apiResult: CollapseResultApiResponse): Collapse
 	return {
 		restoredAmount: parseFloat(apiResult.restored_amount),
 		deletedTransactions: apiResult.deleted_transactions,
-		transactionId: apiResult.transaction_id,
+		transactionId: apiResult.bill_payment_id,
 	}
 }
 
 function transformCreditCardStatus(apiStatus: CreditCardStatusApiResponse): CreditCardStatus {
+	const originalAmount = apiStatus.original_amount ? parseFloat(apiStatus.original_amount) : 0
+
+	// Calculate total CC transactions amount from summary
+	const ccTransactionsTotal = (apiStatus.transactions_summary || []).reduce((sum, tx) => {
+		return sum + Math.abs(parseFloat(tx.amount || '0'))
+	}, 0)
+
+	// Determine if there are mismatches:
+	// 1. If there are CC transactions but no bill linked (orphan transactions)
+	// 2. If there are CC transactions linked to bill but amounts differ
+	const hasOrphanTransactions = !apiStatus.is_expanded &&
+		apiStatus.linked_transactions > 0
+
+	const hasAmountMismatch = apiStatus.is_expanded &&
+		originalAmount > 0 &&
+		ccTransactionsTotal > 0 &&
+		Math.abs(originalAmount - ccTransactionsTotal) > 0.01
+
+	const hasMismatches = hasOrphanTransactions || hasAmountMismatch
+
+	// Calculate unmatched amount
+	// - For orphan transactions, the entire CC total is unmatched
+	// - For amount mismatch, it's the difference
+	let unmatchedAmount = 0
+	if (hasOrphanTransactions) {
+		unmatchedAmount = ccTransactionsTotal
+	} else if (hasAmountMismatch) {
+		unmatchedAmount = Math.abs(ccTransactionsTotal - originalAmount)
+	}
+
+	// Debug logging
+	console.log('[CC Status] API Response:', JSON.stringify(apiStatus, null, 2))
+	console.log('[CC Status] originalAmount:', originalAmount)
+	console.log('[CC Status] ccTransactionsTotal:', ccTransactionsTotal)
+	console.log('[CC Status] is_expanded:', apiStatus.is_expanded)
+	console.log('[CC Status] linked_transactions:', apiStatus.linked_transactions)
+	console.log('[CC Status] hasOrphanTransactions:', hasOrphanTransactions)
+	console.log('[CC Status] hasAmountMismatch:', hasAmountMismatch)
+	console.log('[CC Status] hasMismatches:', hasMismatches)
+	console.log('[CC Status] unmatchedAmount:', unmatchedAmount)
+
 	return {
-		totalSpending: parseFloat(apiStatus.total_spending),
-		matchedAmount: parseFloat(apiStatus.matched_amount),
-		unmatchedAmount: parseFloat(apiStatus.unmatched_amount),
-		expandedBills: apiStatus.expanded_bills,
-		pendingBills: apiStatus.pending_bills,
-		hasMismatches: apiStatus.has_mismatches,
+		totalSpending: apiStatus.is_expanded ? originalAmount : ccTransactionsTotal,
+		matchedAmount: apiStatus.is_expanded ? ccTransactionsTotal : 0,
+		unmatchedAmount,
+		expandedBills: apiStatus.is_expanded ? 1 : 0,
+		pendingBills: apiStatus.is_expanded ? 0 : (apiStatus.linked_transactions > 0 ? 1 : 0),
+		hasMismatches,
 	}
 }
 
@@ -190,18 +261,21 @@ export async function importCreditCardTransactions(
 ): Promise<ImportResult> {
 	const billingCycle = extractBillingCycle(transactions)
 
+	// Get the bill payment ID from the first confirmed match
+	// The backend expects a single bill_payment_id, not an array
+	const billPaymentId = confirmedMatches.length > 0 ? confirmedMatches[0].billTransactionId : ''
+
+	// Filter out payment received transactions - only import actual purchases
+	const transactionsToImport = transactions.filter(tx => !tx.isPaymentReceived)
+
 	const response = await authenticatedFetch(
 		`${API_BASE}/transactions/credit-card/import`,
 		{
 			method: 'POST',
 			body: JSON.stringify({
 				billing_cycle: billingCycle,
-				transactions: transactions.map(transformTransactionToApi),
-				confirmed_matches: confirmedMatches.map((match) => ({
-					bill_transaction_id: match.billTransactionId,
-					payment_received_date: match.paymentReceivedDate,
-				})),
-				skip_unmatched: skipUnmatched,
+				bill_payment_id: billPaymentId,
+				transactions: transactionsToImport.map(transformTransactionToApi),
 				apply_auto_category: true,
 			}),
 		}
@@ -236,7 +310,7 @@ export async function collapseCreditCardExpansion(
 		{
 			method: 'POST',
 			body: JSON.stringify({
-				bill_transaction_id: billTransactionId,
+				bill_payment_id: billTransactionId,
 			}),
 		}
 	)

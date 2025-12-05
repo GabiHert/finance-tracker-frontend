@@ -23,6 +23,12 @@ export interface TransactionApiResponse {
 	is_recurring: boolean
 	created_at: string
 	updated_at: string
+	// Credit card import fields
+	billing_cycle?: string
+	is_expanded_bill?: boolean
+	linked_transaction_count?: number
+	installment_current?: number
+	installment_total?: number
 }
 
 export interface TransactionPaginationResponse {
@@ -63,6 +69,12 @@ function transformTransaction(apiTxn: TransactionApiResponse): Transaction {
 		notes: apiTxn.notes,
 		createdAt: apiTxn.created_at,
 		updatedAt: apiTxn.updated_at,
+		// Credit card import fields
+		billingCycle: apiTxn.billing_cycle,
+		isExpandedBill: apiTxn.is_expanded_bill,
+		linkedTransactionCount: apiTxn.linked_transaction_count,
+		installmentCurrent: apiTxn.installment_current,
+		installmentTotal: apiTxn.installment_total,
 	}
 }
 
