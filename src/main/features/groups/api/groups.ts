@@ -384,10 +384,56 @@ export async function fetchGroupMembers(groupId: string): Promise<GroupMember[]>
 	return data.map(transformMember)
 }
 
-export async function inviteMember(groupId: string, email: string): Promise<void> {
-	const response = await authenticatedFetch(`${API_BASE}/groups/${groupId}/invite`, {
+// Invite check response type
+export interface InviteCheckResult {
+	canInvite: boolean
+	userExists: boolean
+	userName?: string
+	isAlreadyMember: boolean
+	requiresConfirmation?: boolean
+	errorMessage?: string
+}
+
+// API response type for invite check (snake_case from backend)
+interface InviteCheckApiResponse {
+	can_invite: boolean
+	user_exists: boolean
+	user_name?: string
+	is_already_member: boolean
+	requires_confirmation?: boolean
+	error_message?: string
+}
+
+function transformInviteCheckResponse(api: InviteCheckApiResponse): InviteCheckResult {
+	return {
+		canInvite: api.can_invite,
+		userExists: api.user_exists,
+		userName: api.user_name,
+		isAlreadyMember: api.is_already_member,
+		requiresConfirmation: api.requires_confirmation,
+		errorMessage: api.error_message,
+	}
+}
+
+export async function checkInviteEligibility(groupId: string, email: string): Promise<InviteCheckResult> {
+	const response = await authenticatedFetch(`${API_BASE}/groups/${groupId}/invite/check`, {
 		method: 'POST',
 		body: JSON.stringify({ email }),
+	})
+
+	if (!response.ok) {
+		const error = await response.json().catch(() => ({ error: 'Erro ao verificar convite' }))
+		throw new Error(error.error || 'Erro ao verificar convite')
+	}
+
+	const data: InviteCheckApiResponse = await response.json()
+	return transformInviteCheckResponse(data)
+}
+
+export async function inviteMember(groupId: string, email: string, confirmNonUser = false): Promise<void> {
+	const response = await authenticatedFetch(`${API_BASE}/groups/${groupId}/invite`, {
+		method: 'POST',
+		body: JSON.stringify({ email, confirm_non_user: confirmNonUser }),
 	})
 
 	if (!response.ok) {

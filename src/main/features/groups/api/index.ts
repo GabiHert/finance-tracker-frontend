@@ -10,6 +10,7 @@ export {
 	fetchGroupCategories,
 	createGroupCategory,
 	fetchGroupMembers,
+	checkInviteEligibility,
 	inviteMember,
 	leaveGroup,
 	removeMember,
@@ -20,4 +21,5 @@ export type {
 	CreateGroupInput,
 	UpdateGroupInput,
 	CreateGroupCategoryInput,
+	InviteCheckResult,
 } from './groups'

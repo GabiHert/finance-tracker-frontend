@@ -14,9 +14,8 @@ import {
 	fetchGroupTransactions,
 	fetchGroupCategories,
 	createGroupCategory,
-	inviteMember,
 } from './api'
-import type { Group, GroupTab, GroupCategory, GroupTransaction, GroupDashboardData, GroupInvite } from './types'
+import type { Group, GroupTab, GroupCategory, GroupTransaction, GroupDashboardData } from './types'
 import type { Period } from '@main/features/dashboard/types'
 import type { DateRange } from '@main/features/dashboard/components/PeriodSelector'
 
@@ -211,26 +210,10 @@ export function GroupDetailScreen() {
 		navigate('/groups')
 	}
 
-	const handleInviteSend = async (email: string) => {
-		if (!groupId || !group) return
-
-		try {
-			await inviteMember(groupId, email)
-			const newInvite: GroupInvite = {
-				id: `invite-${Date.now()}`,
-				email,
-				status: 'pending',
-				expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-				createdAt: new Date().toISOString(),
-			}
-			setGroup({
-				...group,
-				pendingInvites: [...(group.pendingInvites || []), newInvite],
-			})
-			setIsInviteModalOpen(false)
-		} catch (err) {
-			console.error('Error sending invite:', err)
-		}
+	const handleInviteSuccess = () => {
+		// Reload group data to get updated pending invites
+		loadGroupData()
+		setIsInviteModalOpen(false)
 	}
 
 	const handleSaveCategory = async (data: { name: string; type: 'income' | 'expense'; color: string }) => {
@@ -412,7 +395,8 @@ export function GroupDetailScreen() {
 			<InviteModal
 				isOpen={isInviteModalOpen}
 				onClose={() => setIsInviteModalOpen(false)}
-				onSend={handleInviteSend}
+				onSuccess={handleInviteSuccess}
+				groupId={groupId || ''}
 			/>
 
 			<GroupCategoryModal
