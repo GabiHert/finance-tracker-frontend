@@ -570,7 +570,7 @@ export function TransactionsScreen() {
 				<div className="max-w-6xl mx-auto">
 					{/* Header */}
 					<div data-testid="transactions-header-container" className="p-6 bg-[var(--color-surface)] border-b border-[var(--color-border)]">
-						<div className="flex items-center justify-between mb-4">
+						<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
 							<div>
 								<h1 data-testid="transactions-header" className="text-2xl font-bold text-[var(--color-text)]">
 									Transactions
@@ -579,35 +579,35 @@ export function TransactionsScreen() {
 									{filteredTransactions.length} transactions
 								</p>
 							</div>
-							<div className="flex gap-2">
-								<Button variant="outline" onClick={handleImport} data-testid="import-transactions-btn">
+							<div className="flex gap-2 w-full sm:w-auto">
+								<Button variant="outline" onClick={handleImport} data-testid="import-transactions-btn" className="flex-1 sm:flex-none">
 									Import
 								</Button>
-								<Button onClick={handleAddTransaction} data-testid="add-transaction-btn">
+								<Button onClick={handleAddTransaction} data-testid="add-transaction-btn" className="flex-1 sm:flex-none">
 									+ Add Transaction
 								</Button>
 							</div>
 						</div>
 
 						{/* Summary */}
-						<div data-testid="total-summary" className="grid grid-cols-3 gap-4 mt-4">
-							<div className="p-4 bg-[var(--color-success-50)] rounded-lg">
-								<p className="text-sm text-[var(--color-text-secondary)] mb-1">Income</p>
-								<p data-testid="income-total" className="text-xl font-bold text-[var(--color-success)]">
+						<div data-testid="total-summary" className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mt-4">
+							<div className="p-3 sm:p-4 bg-[var(--color-success-50)] rounded-lg">
+								<p className="text-xs sm:text-sm text-[var(--color-text-secondary)] mb-0.5 sm:mb-1">Income</p>
+								<p data-testid="income-total" className="text-lg sm:text-xl font-bold text-[var(--color-success)]">
 									{formatCurrency(summary.income)}
 								</p>
 							</div>
-							<div className="p-4 bg-[var(--color-error-50)] rounded-lg">
-								<p className="text-sm text-[var(--color-text-secondary)] mb-1">Expense</p>
-								<p data-testid="expense-total" className="text-xl font-bold text-[var(--color-error)]">
+							<div className="p-3 sm:p-4 bg-[var(--color-error-50)] rounded-lg">
+								<p className="text-xs sm:text-sm text-[var(--color-text-secondary)] mb-0.5 sm:mb-1">Expense</p>
+								<p data-testid="expense-total" className="text-lg sm:text-xl font-bold text-[var(--color-error)]">
 									{formatCurrency(summary.expense)}
 								</p>
 							</div>
-							<div className="p-4 bg-[var(--color-primary-50)] rounded-lg">
-								<p className="text-sm text-[var(--color-text-secondary)] mb-1">Net</p>
+							<div className="p-3 sm:p-4 bg-[var(--color-primary-50)] rounded-lg">
+								<p className="text-xs sm:text-sm text-[var(--color-text-secondary)] mb-0.5 sm:mb-1">Net</p>
 								<p
 									data-testid="net-total"
-									className={`text-xl font-bold ${summary.net >= 0 ? 'text-[var(--color-success)]' : 'text-[var(--color-error)]'}`}
+									className={`text-lg sm:text-xl font-bold ${summary.net >= 0 ? 'text-[var(--color-success)]' : 'text-[var(--color-error)]'}`}
 								>
 									{formatCurrency(summary.net)}
 								</p>

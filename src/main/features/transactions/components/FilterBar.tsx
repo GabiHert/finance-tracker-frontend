@@ -51,8 +51,8 @@ export function FilterBar({ filters, onFiltersChange, categoryOptions }: FilterB
 			</div>
 
 			{/* Date Range */}
-			<div data-testid="filter-date-range" className="flex gap-2">
-				<div data-testid="filter-start-date" className="w-40">
+			<div data-testid="filter-date-range" className="flex flex-col xs:flex-row gap-2 w-full sm:w-auto">
+				<div data-testid="filter-start-date" className="flex-1 sm:w-32 md:w-40">
 					<DatePicker
 						value={filters.startDate}
 						onChange={value => onFiltersChange({ ...filters, startDate: value })}
@@ -60,7 +60,7 @@ export function FilterBar({ filters, onFiltersChange, categoryOptions }: FilterB
 						data-testid="filter-start-date"
 					/>
 				</div>
-				<div data-testid="filter-end-date" className="w-40">
+				<div data-testid="filter-end-date" className="flex-1 sm:w-32 md:w-40">
 					<DatePicker
 						value={filters.endDate}
 						onChange={value => onFiltersChange({ ...filters, endDate: value })}
@@ -71,7 +71,7 @@ export function FilterBar({ filters, onFiltersChange, categoryOptions }: FilterB
 			</div>
 
 			{/* Category Filter */}
-			<div className="w-48" data-testid="filter-category">
+			<div className="w-full sm:w-40 md:w-48" data-testid="filter-category">
 				<Select
 					options={[{ value: '', label: 'All Categories' }, ...categoryOptions]}
 					value={filters.categoryId}
@@ -82,7 +82,7 @@ export function FilterBar({ filters, onFiltersChange, categoryOptions }: FilterB
 			</div>
 
 			{/* Type Filter */}
-			<div className="w-40" data-testid="filter-type">
+			<div className="w-full sm:w-32 md:w-40" data-testid="filter-type">
 				<Select
 					options={typeOptions}
 					value={filters.type}

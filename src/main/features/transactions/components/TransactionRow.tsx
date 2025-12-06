@@ -104,7 +104,7 @@ export function TransactionRow({
 			data-testid={isExpandedBill ? 'expanded-bill' : 'transaction-row'}
 			data-transaction-type={`transaction-row-${transaction.type}`}
 			className={`
-				flex items-center gap-4 p-4
+				flex items-start sm:items-center gap-3 sm:gap-4 p-3 sm:p-4
 				border-b border-[var(--color-border)]
 				hover:bg-[var(--color-surface)]
 				transition-colors duration-150
@@ -123,7 +123,7 @@ export function TransactionRow({
 				onChange={() => onSelect(transaction.id)}
 				onClick={e => e.stopPropagation()}
 				data-testid="transaction-checkbox"
-				className="w-4 h-4 rounded border-[var(--color-border)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
+				className="w-4 h-4 rounded border-[var(--color-border)] text-[var(--color-primary)] focus:ring-[var(--color-primary)] mt-1 sm:mt-0"
 			/>
 
 			{/* Category Icon */}
@@ -132,79 +132,86 @@ export function TransactionRow({
 				return (
 					<div
 						data-testid="category-icon"
-						className="w-10 h-10 rounded-full flex items-center justify-center"
+						className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0"
 						style={{
 							backgroundColor: `${transaction.categoryColor}20`,
 							color: transaction.categoryColor,
 						}}
 					>
-						<IconComponent className="w-5 h-5" />
+						<IconComponent className="w-4 h-4 sm:w-5 sm:h-5" />
 					</div>
 				)
 			})()}
 
 			{/* Transaction Info */}
-			<div className="flex-1 min-w-0">
-				<div className="flex items-center gap-2 mb-1">
-					<h3
-						data-testid="transaction-description"
-						className="font-medium text-[var(--color-text)] truncate"
-					>
-						{transaction.description}
-					</h3>
-					<span
-						data-testid="transaction-category"
-						className="text-sm text-[var(--color-text-secondary)]"
-					>
-						{transaction.categoryName}
-					</span>
-					{/* CC Badge */}
-					{(transaction.billingCycle || transaction.installmentCurrent || transaction.isExpandedBill) && (
-						<CreditCardBadge
-							billingCycle={transaction.billingCycle}
-							hasInstallment={!!transaction.installmentCurrent}
-							installmentCurrent={transaction.installmentCurrent}
-							installmentTotal={transaction.installmentTotal}
-							isExpanded={transaction.isExpandedBill}
-							linkedCount={transaction.linkedTransactionCount}
-						/>
-					)}
+			<div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+				{/* Left side: Description and details */}
+				<div className="flex-1 min-w-0">
+					{/* Description row */}
+					<div className="flex items-center gap-2 flex-wrap">
+						<h3
+							data-testid="transaction-description"
+							className="font-medium text-[var(--color-text)] text-sm sm:text-base truncate max-w-[180px] sm:max-w-none"
+						>
+							{transaction.description}
+						</h3>
+						<span
+							data-testid="transaction-category"
+							className="text-xs sm:text-sm text-[var(--color-text-secondary)] hidden sm:inline"
+						>
+							{transaction.categoryName}
+						</span>
+					</div>
+					{/* Date/notes row + badges on mobile */}
+					<div className="flex items-center gap-2 text-xs sm:text-sm text-[var(--color-text-secondary)] flex-wrap mt-0.5">
+						<span data-testid="transaction-date">{transaction.date}</span>
+						{/* Show category on mobile in the second row */}
+						<span className="sm:hidden">• {transaction.categoryName}</span>
+						{transaction.notes && (
+							<>
+								<span className="hidden sm:inline">•</span>
+								<span
+									data-testid="transaction-notes"
+									className="truncate hidden sm:inline"
+									title={transaction.notes}
+								>
+									{transaction.notes}
+								</span>
+							</>
+						)}
+						{/* CC Badge - move to second row for mobile */}
+						{(transaction.billingCycle || transaction.installmentCurrent || transaction.isExpandedBill) && (
+							<CreditCardBadge
+								billingCycle={transaction.billingCycle}
+								hasInstallment={!!transaction.installmentCurrent}
+								installmentCurrent={transaction.installmentCurrent}
+								installmentTotal={transaction.installmentTotal}
+								isExpanded={transaction.isExpandedBill}
+								linkedCount={transaction.linkedTransactionCount}
+							/>
+						)}
+					</div>
 				</div>
-				<div className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
-					<span data-testid="transaction-date">{transaction.date}</span>
-					{transaction.notes && (
-						<>
-							<span>•</span>
-							<span
-								data-testid="transaction-notes"
-								className="truncate"
-								title={transaction.notes}
-							>
-								{transaction.notes}
-							</span>
-						</>
-					)}
+
+				{/* Amount - aligned right */}
+				<div
+					data-testid="transaction-amount"
+					className={`
+						text-base sm:text-lg font-semibold whitespace-nowrap
+						${transaction.type === 'income' ? 'text-[var(--color-success)]' : 'text-[var(--color-error)]'}
+					`.replace(/\s+/g, ' ').trim()}
+				>
+					{transaction.type === 'expense' ? '-' : ''}
+					{formatCurrency(transaction.amount)}
 				</div>
 			</div>
 
-			{/* Amount */}
-			<div
-				data-testid="transaction-amount"
-				className={`
-					text-lg font-semibold
-					${transaction.type === 'income' ? 'text-[var(--color-success)]' : 'text-[var(--color-error)]'}
-				`.replace(/\s+/g, ' ').trim()}
-			>
-				{transaction.type === 'expense' ? '-' : ''}
-				{formatCurrency(transaction.amount)}
-			</div>
-
-			{/* Action Buttons */}
+			{/* Action Buttons - always visible on mobile via touch */}
 			<div
 				className={`
-					flex items-center gap-2
+					flex items-center gap-1 sm:gap-2
 					transition-opacity duration-150
-					${isHovered || isExpandedBill ? 'opacity-100' : 'opacity-0'}
+					${isHovered || isExpandedBill ? 'opacity-100' : 'sm:opacity-0 opacity-100'}
 				`.replace(/\s+/g, ' ').trim()}
 			>
 				{isExpandedBill && onCollapse && (
