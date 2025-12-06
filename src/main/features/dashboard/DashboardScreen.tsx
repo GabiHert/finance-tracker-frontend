@@ -4,6 +4,7 @@ import { MetricCard } from './components/MetricCard'
 import { PeriodSelector, type DateRange } from './components/PeriodSelector'
 import { DonutChart } from './components/DonutChart'
 import { TrendsChart } from './components/TrendsChart'
+import { CategoryTrendsChart } from './components/CategoryTrendsChart'
 import { RecentTransactions } from './components/RecentTransactions'
 import { GoalsProgress } from './components/GoalsProgress'
 import { AlertsBanner } from './components/AlertsBanner'
@@ -231,6 +232,23 @@ export function DashboardScreen() {
 					<div>
 						<DonutChart data={categoryBreakdown} />
 					</div>
+				</div>
+
+				{/* Category Trends Chart */}
+				<div className="mb-6">
+					<CategoryTrendsChart
+						startDate=""
+						endDate=""
+						period={period}
+						customDateRange={
+							period === 'custom' && customDateRange.startDate && customDateRange.endDate
+								? {
+										startDate: convertDateFormat(customDateRange.startDate),
+										endDate: convertDateFormat(customDateRange.endDate),
+								  }
+								: undefined
+						}
+					/>
 				</div>
 
 				{/* Credit Card Status Card */}

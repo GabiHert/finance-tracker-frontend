@@ -6,6 +6,7 @@ export { TrendsChart } from './components/TrendsChart'
 export { RecentTransactions } from './components/RecentTransactions'
 export { GoalsProgress } from './components/GoalsProgress'
 export { AlertsBanner } from './components/AlertsBanner'
+export { CategoryTrendsChart } from './components/CategoryTrendsChart'
 export type {
 	DashboardSummary,
 	CategoryBreakdown,
@@ -14,5 +15,10 @@ export type {
 	GoalProgress,
 	DashboardAlert,
 	Period,
+	Granularity,
+	CategoryTrendsData,
+	CategoryTrendInfo,
+	CategoryTrendDataPoint,
 } from './types'
 export { formatCurrency, formatPercentage, formatDate } from './types'
+export { fetchCategoryTrends, type FetchCategoryTrendsParams } from './api/categoryTrends'

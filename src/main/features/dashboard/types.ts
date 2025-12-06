@@ -45,13 +45,46 @@ export interface GoalProgress {
 
 export interface DashboardAlert {
 	id: string
-	type: 'goal_over_limit' | 'recurring_expense' | 'unusual_spending'
+	type: 'goal_over_limit' | 'recurring_expense' | 'unusual_spending' | 'goal_exceeded' | 'goal_warning'
 	message: string
 	goalId?: string
+	categoryId?: string
 	severity: 'warning' | 'danger' | 'info'
 }
 
 export type Period = 'this_month' | 'last_month' | 'this_week' | 'last_week' | 'custom'
+
+export type Granularity = 'daily' | 'weekly' | 'monthly'
+
+// Category Trends Types
+export interface CategoryTrendInfo {
+	id: string
+	name: string
+	color: string
+	totalAmount: number
+	isOthers: boolean
+}
+
+export interface CategoryTrendAmount {
+	categoryId: string
+	amount: number
+}
+
+export interface CategoryTrendDataPoint {
+	date: string
+	periodLabel: string
+	amounts: CategoryTrendAmount[]
+}
+
+export interface CategoryTrendsData {
+	period: {
+		startDate: string
+		endDate: string
+		granularity: Granularity
+	}
+	categories: CategoryTrendInfo[]
+	trends: CategoryTrendDataPoint[]
+}
 
 export function formatCurrency(value: number, useAbsoluteValue = false): string {
 	const numericValue = useAbsoluteValue ? Math.abs(value) : value
