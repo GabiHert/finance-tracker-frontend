@@ -1,5 +1,5 @@
 # Finance Tracker Frontend - Production Dockerfile
-# Multi-stage build: Node for building, Caddy for serving
+# Multi-stage build: Node for building, Nginx for serving
 
 # Stage 1: Build
 FROM node:22-alpine AS builder
@@ -16,17 +16,20 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Stage 2: Production - serve with Caddy
-FROM caddy:2-alpine
+# Stage 2: Production - serve with Nginx
+FROM nginx:alpine
+
+# Remove default nginx config
+RUN rm /etc/nginx/conf.d/default.conf
+
+# Copy custom nginx config
+COPY --from=builder /app/nginx.conf /etc/nginx/conf.d/default.conf.template
 
 # Copy built assets from builder
-COPY --from=builder /app/dist /srv
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy Caddyfile for SPA routing (from builder stage)
-COPY --from=builder /app/Caddyfile /etc/caddy/Caddyfile
-
-# Expose port (Railway will set $PORT)
+# Expose port (will be overridden by Railway's PORT)
 EXPOSE 3000
 
-# Start Caddy
-CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
+# Substitute PORT env variable and start nginx
+CMD sh -c "envsubst '\$PORT' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
