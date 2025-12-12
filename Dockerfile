@@ -19,6 +19,9 @@ RUN npm run build
 # Stage 2: Production - serve with Nginx
 FROM nginx:alpine
 
+# Install CA certificates for HTTPS proxy
+RUN apk add --no-cache ca-certificates
+
 # Remove default nginx config
 RUN rm /etc/nginx/conf.d/default.conf
 
