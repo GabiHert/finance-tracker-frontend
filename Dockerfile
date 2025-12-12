@@ -22,8 +22,8 @@ FROM caddy:2-alpine
 # Copy built assets from builder
 COPY --from=builder /app/dist /srv
 
-# Copy Caddyfile for SPA routing
-COPY Caddyfile /etc/caddy/Caddyfile
+# Copy Caddyfile for SPA routing (from builder stage)
+COPY --from=builder /app/Caddyfile /etc/caddy/Caddyfile
 
 # Expose port (Railway will set $PORT)
 EXPOSE 3000
