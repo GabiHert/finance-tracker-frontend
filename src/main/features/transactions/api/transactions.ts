@@ -25,6 +25,7 @@ export interface TransactionApiResponse {
 	updated_at: string
 	// Credit card import fields
 	billing_cycle?: string
+	credit_card_payment_id?: string
 	is_expanded_bill?: boolean
 	linked_transaction_count?: number
 	installment_current?: number
@@ -71,6 +72,7 @@ function transformTransaction(apiTxn: TransactionApiResponse): Transaction {
 		updatedAt: apiTxn.updated_at,
 		// Credit card import fields
 		billingCycle: apiTxn.billing_cycle,
+		creditCardPaymentId: apiTxn.credit_card_payment_id,
 		isExpandedBill: apiTxn.is_expanded_bill,
 		linkedTransactionCount: apiTxn.linked_transaction_count,
 		installmentCurrent: apiTxn.installment_current,
@@ -106,8 +108,15 @@ export async function fetchTransactions(params: FetchTransactionsParams = {}): P
 	if (params.type && params.type !== 'all') queryParams.set('type', params.type)
 	if (params.categoryId) queryParams.set('category_id', params.categoryId)
 	if (params.search) queryParams.set('search', params.search)
-	if (params.startDate) queryParams.set('start_date', params.startDate)
-	if (params.endDate) queryParams.set('end_date', params.endDate)
+	// Convert dates from DD/MM/YYYY to YYYY-MM-DD format and use camelCase param names
+	if (params.startDate) {
+		const [day, month, year] = params.startDate.split('/')
+		queryParams.set('startDate', `${year}-${month}-${day}`)
+	}
+	if (params.endDate) {
+		const [day, month, year] = params.endDate.split('/')
+		queryParams.set('endDate', `${year}-${month}-${day}`)
+	}
 
 	const queryString = queryParams.toString()
 	const url = `${API_BASE}/transactions${queryString ? `?${queryString}` : ''}`

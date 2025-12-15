@@ -203,12 +203,11 @@ export function ImportWizard({ isOpen, onClose, onImport, onCCImportSuccess, cat
 		setError(null)
 		setMappingError(null)
 
-		// Validate file type
-		const validTypes = ['text/csv', 'application/vnd.ms-excel', 'text/plain']
+		// Validate file type - must have valid extension (.csv or .ofx)
 		const validExtensions = ['.csv', '.ofx']
 		const hasValidExtension = validExtensions.some(ext => selectedFile.name.toLowerCase().endsWith(ext))
 
-		if (!validTypes.includes(selectedFile.type) && !hasValidExtension) {
+		if (!hasValidExtension) {
 			setError('Invalid file type. Please upload a CSV or OFX file.')
 			return
 		}
@@ -562,6 +561,7 @@ export function ImportWizard({ isOpen, onClose, onImport, onCCImportSuccess, cat
 							type="file"
 							accept=".csv,.ofx"
 							onChange={handleFileSelect}
+							data-testid="csv-file-input"
 							className="hidden"
 						/>
 
@@ -610,7 +610,7 @@ export function ImportWizard({ isOpen, onClose, onImport, onCCImportSuccess, cat
 
 					{/* Error Message */}
 					{error && (
-						<div data-testid="parse-error" className="mt-4 p-3 bg-[var(--color-error-50)] border border-[var(--color-error-200)] rounded-lg text-[var(--color-error)]">
+						<div data-testid={error.includes('Invalid file type') ? 'file-error-message' : 'parse-error'} className="mt-4 p-3 bg-[var(--color-error-50)] border border-[var(--color-error-200)] rounded-lg text-[var(--color-error)]">
 							{error}
 						</div>
 					)}

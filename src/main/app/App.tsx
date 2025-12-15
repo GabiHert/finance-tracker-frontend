@@ -8,6 +8,7 @@ import { GoalsScreen } from '@main/features/goals'
 import { DashboardScreen } from '@main/features/dashboard'
 import { GroupsScreen, GroupDetailScreen } from '@main/features/groups'
 import { SettingsScreen } from '@main/features/settings'
+import { ReconciliationScreen } from '@main/features/reconciliation'
 import { AppLayout, ToastProvider } from '@main/components/layout'
 
 function AuthenticatedRoute({ children }: { children: React.ReactNode }) {
@@ -45,6 +46,7 @@ function App() {
 					<Route path="/groups" element={<AuthenticatedRoute><GroupsScreen /></AuthenticatedRoute>} />
 					<Route path="/groups/:groupId" element={<AuthenticatedRoute><GroupDetailScreen /></AuthenticatedRoute>} />
 					<Route path="/settings" element={<AuthenticatedRoute><SettingsScreen /></AuthenticatedRoute>} />
+					<Route path="/transacoes/reconciliacao" element={<AuthenticatedRoute><ReconciliationScreen /></AuthenticatedRoute>} />
 
 					{/* Redirects */}
 					<Route path="/" element={<Navigate to="/login" replace />} />
