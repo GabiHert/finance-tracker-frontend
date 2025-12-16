@@ -8,7 +8,9 @@ import { GoalsScreen } from '@main/features/goals'
 import { DashboardScreen } from '@main/features/dashboard'
 import { GroupsScreen, GroupDetailScreen } from '@main/features/groups'
 import { SettingsScreen } from '@main/features/settings'
+import { ReconciliationScreen } from '@main/features/reconciliation'
 import { AppLayout, ToastProvider } from '@main/components/layout'
+import { ThemeProvider } from '@main/hooks'
 
 function AuthenticatedRoute({ children }: { children: React.ReactNode }) {
 	const token = localStorage.getItem('access_token')
@@ -26,9 +28,10 @@ function AuthenticatedRoute({ children }: { children: React.ReactNode }) {
 
 function App() {
 	return (
-		<BrowserRouter>
-			<ToastProvider>
-				<Routes>
+		<ThemeProvider>
+			<BrowserRouter>
+				<ToastProvider>
+					<Routes>
 					{/* Public routes */}
 					<Route path="/login" element={<LoginScreen />} />
 					<Route path="/register" element={<RegisterScreen />} />
@@ -45,13 +48,15 @@ function App() {
 					<Route path="/groups" element={<AuthenticatedRoute><GroupsScreen /></AuthenticatedRoute>} />
 					<Route path="/groups/:groupId" element={<AuthenticatedRoute><GroupDetailScreen /></AuthenticatedRoute>} />
 					<Route path="/settings" element={<AuthenticatedRoute><SettingsScreen /></AuthenticatedRoute>} />
+					<Route path="/transacoes/reconciliacao" element={<AuthenticatedRoute><ReconciliationScreen /></AuthenticatedRoute>} />
 
-					{/* Redirects */}
-					<Route path="/" element={<Navigate to="/login" replace />} />
-					<Route path="*" element={<Navigate to="/login" replace />} />
-				</Routes>
-			</ToastProvider>
-		</BrowserRouter>
+						{/* Redirects */}
+						<Route path="/" element={<Navigate to="/login" replace />} />
+						<Route path="*" element={<Navigate to="/login" replace />} />
+					</Routes>
+				</ToastProvider>
+			</BrowserRouter>
+		</ThemeProvider>
 	)
 }
 

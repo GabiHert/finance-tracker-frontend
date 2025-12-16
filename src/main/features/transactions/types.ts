@@ -15,6 +15,7 @@ export interface Transaction {
 	updatedAt: string
 	// Credit card import fields
 	billingCycle?: string // "YYYY-MM" format if imported from CC statement
+	creditCardPaymentId?: string // ID of linked bill payment, undefined if pending
 	isExpandedBill?: boolean // True if this is a bill payment that has been expanded
 	linkedTransactionCount?: number // Number of CC transactions linked to this bill
 	installmentCurrent?: number // Current installment number

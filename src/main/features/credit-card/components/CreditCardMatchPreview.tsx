@@ -117,6 +117,15 @@ export function CreditCardMatchPreview({
 				</div>
 			)}
 
+			{/* Auto-match info */}
+			{matches.length > 0 && (
+				<div data-testid="auto-match-info" className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+					<p className="text-sm text-green-700 dark:text-green-300">
+						Fatura detectada! Encontramos {matches.length} {matches.length === 1 ? 'fatura correspondente' : 'faturas correspondentes'} para as transações do cartão.
+					</p>
+				</div>
+			)}
+
 			{/* Matches */}
 			{matches.length > 0 ? (
 				<div>
@@ -174,8 +183,8 @@ export function CreditCardMatchPreview({
 					</div>
 				</div>
 			) : (
-				<div data-testid="no-matches-message" className="text-center py-6 text-[var(--color-text-secondary)]">
-					Nenhuma fatura encontrada para vincular. As transacoes serao importadas sem vinculo.
+				<div data-testid="no-match-info" className="text-center py-6 text-[var(--color-text-secondary)]">
+					Nenhuma fatura encontrada para vincular. As transacoes serao importadas sem correspondência.
 				</div>
 			)}
 

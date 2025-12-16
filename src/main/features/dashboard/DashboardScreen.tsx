@@ -10,6 +10,7 @@ import { GoalsProgress } from './components/GoalsProgress'
 import { AlertsBanner } from './components/AlertsBanner'
 import { fetchDashboardData, type DashboardData, type CustomDateRange } from './api/dashboard'
 import { CreditCardStatusCard, getCreditCardStatus, type CreditCardStatus } from '@main/features/credit-card'
+import { PendingBanner, fetchPendingCycles, type ReconciliationSummary, type PendingCycle } from '@main/features/reconciliation'
 import type { Period } from './types'
 
 function RefreshIcon() {
@@ -54,6 +55,8 @@ export function DashboardScreen() {
 	const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
 	const [error, setError] = useState<string | null>(null)
 	const [ccStatus, setCcStatus] = useState<CreditCardStatus | null>(null)
+	const [reconciliationSummary, setReconciliationSummary] = useState<ReconciliationSummary | null>(null)
+	const [pendingCycles, setPendingCycles] = useState<PendingCycle[]>([])
 
 	const loadDashboardData = useCallback(async () => {
 		setIsLoading(true)
@@ -74,12 +77,15 @@ export function DashboardScreen() {
 				options = { period }
 			}
 
-			const [data, creditCardStatus] = await Promise.all([
+			const [data, creditCardStatus, pendingCyclesResponse] = await Promise.all([
 				fetchDashboardData(options),
 				getCreditCardStatus().catch(() => null), // Don't fail if CC status fails
+				fetchPendingCycles(10, 0).catch(() => ({ cycles: [], summary: { totalPending: 0, totalLinked: 0, monthsCovered: 0 } })),
 			])
 			setDashboardData(data)
 			setCcStatus(creditCardStatus)
+			setPendingCycles(pendingCyclesResponse.cycles)
+			setReconciliationSummary(pendingCyclesResponse.summary)
 			setLastUpdated(new Date())
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Erro ao carregar dashboard')
@@ -172,6 +178,16 @@ export function DashboardScreen() {
 						</Button>
 					</div>
 				</div>
+
+				{/* Pending Reconciliation Banner */}
+				{reconciliationSummary && reconciliationSummary.totalPending > 0 && (
+					<div className="mb-6">
+						<PendingBanner
+							summary={reconciliationSummary}
+							pendingMonths={pendingCycles.map((c) => c.displayName)}
+						/>
+					</div>
+				)}
 
 				{/* Alerts Banner */}
 				{alerts.length > 0 && (

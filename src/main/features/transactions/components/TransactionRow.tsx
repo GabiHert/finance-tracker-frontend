@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Transaction } from '../types'
 import { getIconComponent } from '@main/components/ui/IconPicker'
 import { CreditCardBadge } from '@main/features/credit-card/components/CreditCardBadge'
+import { PendingBadge } from '@main/features/reconciliation'
 
 export interface TransactionRowProps {
 	transaction: Transaction
@@ -189,6 +190,10 @@ export function TransactionRow({
 								isExpanded={transaction.isExpandedBill}
 								linkedCount={transaction.linkedTransactionCount}
 							/>
+						)}
+						{/* Pending badge for CC transactions without linked bill */}
+						{transaction.billingCycle && !transaction.creditCardPaymentId && !transaction.isExpandedBill && (
+							<PendingBadge billingCycle={transaction.billingCycle} />
 						)}
 					</div>
 				</div>

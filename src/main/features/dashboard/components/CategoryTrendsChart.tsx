@@ -117,7 +117,7 @@ function ChartLegend({
 	onToggle: (id: string) => void
 }) {
 	return (
-		<div data-testid="chart-legend" className="flex flex-wrap gap-2 mt-4 justify-center">
+		<div data-testid="category-trends-legend" className="flex flex-wrap gap-2 mt-4 justify-center">
 			{categories.map((cat) => {
 				const isVisible = visibleIds.has(cat.id)
 				return (

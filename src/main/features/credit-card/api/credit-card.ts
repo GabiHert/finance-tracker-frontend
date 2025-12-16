@@ -134,13 +134,15 @@ function transformCreditCardStatus(apiStatus: CreditCardStatusApiResponse): Cred
 	const originalAmount = apiStatus.original_amount ? parseFloat(apiStatus.original_amount) : 0
 
 	// Calculate total CC transactions amount from summary
+	// Use algebraic sum (not absolute) so refunds subtract from total
+	// Refunds have negative amounts, expenses have positive amounts
 	const ccTransactionsTotal = (apiStatus.transactions_summary || []).reduce((sum, tx) => {
-		return sum + Math.abs(parseFloat(tx.amount || '0'))
+		return sum + parseFloat(tx.amount || '0')
 	}, 0)
 
 	// Determine if there are mismatches:
 	// 1. If there are CC transactions but no bill linked (orphan transactions)
-	// 2. If there are CC transactions linked to bill but amounts differ
+	// 2. If there are CC transactions linked to bill but amounts differ significantly
 	const hasOrphanTransactions = !apiStatus.is_expanded &&
 		apiStatus.linked_transactions > 0
 
@@ -211,10 +213,17 @@ function extractBillingCycle(transactions: CreditCardTransaction[]): string {
 
 // Transform frontend transaction to API format
 function transformTransactionToApi(tx: CreditCardTransaction): Record<string, unknown> {
+	// For "Pagamento recebido", always use absolute value as it's just a reference
+	// For all other transactions (including refunds like "Estorno"), preserve the sign
+	// Refunds have negative amounts and should be stored as such
+	const amount = tx.isPaymentReceived
+		? Math.abs(tx.amount) // Payment received is a reference amount, always positive
+		: tx.amount // Preserve sign for refunds (negative) and expenses (positive)
+
 	return {
 		date: tx.date,
 		description: tx.title, // Backend expects "description", not "title"
-		amount: Math.abs(tx.amount),
+		amount,
 		installment_current: tx.installmentCurrent,
 		installment_total: tx.installmentTotal,
 		is_payment_received: tx.isPaymentReceived,
