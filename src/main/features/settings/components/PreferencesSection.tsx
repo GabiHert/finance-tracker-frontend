@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useTheme, type Theme } from '@main/hooks'
 import type { UserPreferences } from '../types'
 
 interface PreferencesSectionProps {
@@ -62,6 +63,8 @@ function Select({ testId, label, value, options, onChange }: SelectProps) {
 }
 
 export function PreferencesSection({ preferences, onChange }: PreferencesSectionProps) {
+	const { theme, setTheme } = useTheme()
+
 	const dateFormatOptions = [
 		{ value: 'DD/MM/YYYY', label: 'DD/MM/YYYY' },
 		{ value: 'MM/DD/YYYY', label: 'MM/DD/YYYY' },
@@ -78,6 +81,11 @@ export function PreferencesSection({ preferences, onChange }: PreferencesSection
 		{ value: 'dark', label: 'Escuro' },
 		{ value: 'system', label: 'Sistema' },
 	]
+
+	const handleThemeChange = (value: string) => {
+		setTheme(value as Theme)
+		onChange('theme', value)
+	}
 
 	return (
 		<div
@@ -108,9 +116,9 @@ export function PreferencesSection({ preferences, onChange }: PreferencesSection
 				<Select
 					testId="theme-select"
 					label="Tema"
-					value={preferences.theme}
+					value={theme}
 					options={themeOptions}
-					onChange={(value) => onChange('theme', value)}
+					onChange={handleThemeChange}
 				/>
 			</div>
 		</div>

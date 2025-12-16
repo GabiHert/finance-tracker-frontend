@@ -1,2 +1,2 @@
 // Custom React hooks exports
-// Add hook exports here as they are created
+export { useTheme, ThemeProvider, type Theme } from './use-theme.tsx'
