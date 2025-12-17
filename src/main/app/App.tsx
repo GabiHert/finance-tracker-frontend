@@ -9,6 +9,7 @@ import { DashboardScreen } from '@main/features/dashboard'
 import { GroupsScreen, GroupDetailScreen } from '@main/features/groups'
 import { SettingsScreen } from '@main/features/settings'
 import { ReconciliationScreen } from '@main/features/reconciliation'
+import { SmartCategorizationScreen } from '@main/features/ai-assistant'
 import { AppLayout, ToastProvider } from '@main/components/layout'
 import { ThemeProvider } from '@main/hooks'
 
@@ -44,6 +45,7 @@ function App() {
 					<Route path="/categories" element={<AuthenticatedRoute><CategoriesScreen /></AuthenticatedRoute>} />
 					<Route path="/transactions" element={<AuthenticatedRoute><TransactionsScreen /></AuthenticatedRoute>} />
 					<Route path="/rules" element={<AuthenticatedRoute><RulesScreen /></AuthenticatedRoute>} />
+					<Route path="/ai" element={<AuthenticatedRoute><SmartCategorizationScreen /></AuthenticatedRoute>} />
 					<Route path="/goals" element={<AuthenticatedRoute><GoalsScreen /></AuthenticatedRoute>} />
 					<Route path="/groups" element={<AuthenticatedRoute><GroupsScreen /></AuthenticatedRoute>} />
 					<Route path="/groups/:groupId" element={<AuthenticatedRoute><GroupDetailScreen /></AuthenticatedRoute>} />
