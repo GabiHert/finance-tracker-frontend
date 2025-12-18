@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { Button } from '@main/components/ui/Button'
+import { getIconComponent } from '@main/components/ui/IconPicker'
 import type { AISuggestion } from '../types'
 
 interface SuggestionCardProps {
@@ -72,6 +73,8 @@ export function SuggestionCard({
 
 	const isNewCategory = suggestion.category.type === 'new'
 
+	const IconComponent = getIconComponent(categoryIcon || 'folder')
+
 	return (
 		<div
 			data-testid="suggestion-card"
@@ -81,10 +84,10 @@ export function SuggestionCard({
 			<div className="flex items-start justify-between mb-4">
 				<div className="flex items-center gap-3">
 					<div
-						className="w-10 h-10 rounded-lg flex items-center justify-center text-white text-lg"
+						className="w-10 h-10 rounded-lg flex items-center justify-center text-white"
 						style={{ backgroundColor: categoryColor || '#6B7280' }}
 					>
-						{categoryIcon || '📁'}
+						<IconComponent className="w-5 h-5" />
 					</div>
 					<div>
 						<div className="flex items-center gap-2">
