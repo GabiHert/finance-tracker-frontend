@@ -49,7 +49,7 @@ interface StartApiResponse {
 interface AffectedTransactionApi {
 	id: string
 	description: string
-	amount: number
+	amount: string
 	date: string
 }
 
@@ -78,7 +78,7 @@ interface SuggestionApiResponse {
 interface SkippedTransactionApi {
 	id: string
 	description: string
-	amount: number
+	amount: string
 	date: string
 	skip_reason: string
 }
@@ -116,7 +116,7 @@ function transformAffectedTransaction(api: AffectedTransactionApi): AffectedTran
 	return {
 		id: api.id,
 		description: api.description,
-		amount: api.amount,
+		amount: parseFloat(api.amount),
 		date: api.date,
 	}
 }
@@ -149,7 +149,7 @@ function transformSkippedTransaction(api: SkippedTransactionApi): SkippedTransac
 	return {
 		id: api.id,
 		description: api.description,
-		amount: api.amount,
+		amount: parseFloat(api.amount),
 		date: api.date,
 		skipReason: api.skip_reason as SkippedTransaction['skipReason'],
 	}
