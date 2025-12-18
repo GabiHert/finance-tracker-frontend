@@ -4,6 +4,8 @@ import { Button } from '@main/components/ui/Button'
 import { Modal } from '@main/components/ui/Modal'
 import { SuggestionCard } from './components/SuggestionCard'
 import { EditSuggestionModal } from './components/EditSuggestionModal'
+import { ProcessingProgress } from './components/ProcessingProgress'
+import { PartialFailureBanner } from './components/PartialFailureBanner'
 import {
 	getCategorizationStatus,
 	startCategorization,
@@ -35,6 +37,7 @@ export function SmartCategorizationScreen() {
 	const [error, setError] = useState<string | null>(null)
 	const [aiError, setAiError] = useState<AIProcessingError | null>(null)
 	const [isProcessing, setIsProcessing] = useState(false)
+	const [isPartialResults, setIsPartialResults] = useState(false)
 
 	// Modal states
 	const [editingSuggestion, setEditingSuggestion] = useState<AISuggestion | null>(null)
@@ -56,6 +59,7 @@ export function SmartCategorizationScreen() {
 			const data = await getSuggestions()
 			setSuggestions(data.suggestions)
 			setSkippedTransactions(data.skippedTransactions)
+			setIsPartialResults(data.isPartial)
 			return data
 		} catch (err) {
 			throw err
@@ -102,17 +106,23 @@ export function SmartCategorizationScreen() {
 				loadCategories(),
 			])
 
-			// Check for AI error
-			if (statusData.hasError && statusData.error) {
-				setAiError(statusData.error)
-				setScreenState('ai_error')
-				return
-			}
-
 			let suggestionsData: SuggestionsResponse | undefined
 
+			// Load suggestions if any pending
 			if (statusData.pendingSuggestionsCount > 0) {
 				suggestionsData = await loadSuggestions()
+			}
+
+			// Check for AI error with partial results
+			if (statusData.hasError && statusData.error) {
+				setAiError(statusData.error)
+				// If we have suggestions despite the error, show them with the error banner
+				if (suggestionsData && suggestionsData.suggestions.length > 0) {
+					setScreenState('suggestions')
+				} else {
+					setScreenState('ai_error')
+				}
+				return
 			}
 
 			setScreenState(determineScreenState(statusData, suggestionsData))
@@ -134,11 +144,23 @@ export function SmartCategorizationScreen() {
 			try {
 				const statusData = await loadStatus()
 
-				// Check for AI error first - stop polling immediately
+				// Check for AI error - but also check for partial results
 				if (statusData.hasError && statusData.error) {
 					setAiError(statusData.error)
-					setScreenState('ai_error')
+					// Load suggestions to check for partial results
+					const suggestionsData = await loadSuggestions()
+					if (suggestionsData.suggestions.length > 0) {
+						// Partial failure - show suggestions with error banner
+						setScreenState('suggestions')
+					} else {
+						setScreenState('ai_error')
+					}
 					return
+				}
+
+				// Fetch suggestions during processing for incremental display
+				if (statusData.pendingSuggestionsCount > 0) {
+					await loadSuggestions()
 				}
 
 				if (!statusData.isProcessing) {
@@ -434,23 +456,65 @@ export function SmartCategorizationScreen() {
 
 				{/* Processing State */}
 				{screenState === 'processing' && (
-					<div
-						data-testid="processing-state"
-						className="text-center py-12 bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)]"
-					>
-						<div className="animate-spin w-12 h-12 border-4 border-[var(--color-primary)] border-t-transparent rounded-full mx-auto mb-4" />
-						<h3 className="text-lg font-medium text-[var(--color-text)] mb-2">
-							Analisando transacoes...
-						</h3>
-						<p className="text-[var(--color-text-secondary)]">
-							A IA esta analisando suas transacoes e criando sugestoes de categorizacao.
-						</p>
+					<div data-testid="processing-state" className="space-y-6">
+						{/* Progress Indicator */}
+						{status?.progress ? (
+							<ProcessingProgress
+								progress={status.progress}
+								pendingSuggestionsCount={suggestions.length}
+							/>
+						) : (
+							<div className="text-center py-12 bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)]">
+								<div className="animate-spin w-12 h-12 border-4 border-[var(--color-primary)] border-t-transparent rounded-full mx-auto mb-4" />
+								<h3 className="text-lg font-medium text-[var(--color-text)] mb-2">
+									Iniciando processamento...
+								</h3>
+								<p className="text-[var(--color-text-secondary)]">
+									A IA esta analisando suas transacoes e criando sugestoes de categorizacao.
+								</p>
+							</div>
+						)}
+
+						{/* Incremental Suggestions Display */}
+						{suggestions.length > 0 && (
+							<>
+								<div className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
+									<span>{suggestions.length} sugestoes prontas</span>
+									<span data-testid="more-suggestions-loading" className="text-xs">(mais a caminho...)</span>
+								</div>
+								<div data-testid="suggestions-list" className="space-y-4">
+									{suggestions.map((suggestion) => (
+										<SuggestionCard
+											key={suggestion.id}
+											suggestion={suggestion}
+											onApprove={handleApprove}
+											onReject={(id) => setRejectingId(id)}
+											onEdit={handleEdit}
+											isProcessing={isProcessing}
+										/>
+									))}
+								</div>
+							</>
+						)}
 					</div>
 				)}
 
 				{/* Suggestions State */}
 				{screenState === 'suggestions' && (
 					<>
+						{/* Partial Failure Banner */}
+						{aiError && suggestions.length > 0 && (
+							<div className="mb-6">
+								<PartialFailureBanner
+									error={aiError}
+									suggestionsCount={suggestions.length}
+									uncategorizedCount={status?.uncategorizedCount ?? 0}
+									onRetry={handleRetry}
+									isRetrying={isProcessing}
+								/>
+							</div>
+						)}
+
 						{/* Stats */}
 						<div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
 							<div className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] p-4 text-center">

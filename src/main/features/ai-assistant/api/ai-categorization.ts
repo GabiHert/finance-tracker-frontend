@@ -22,6 +22,13 @@ interface ErrorApiResponse {
 	timestamp: string
 }
 
+interface ProgressApiResponse {
+	processed_transactions: number
+	total_transactions: number
+	current_batch: number
+	total_batches: number
+}
+
 interface StatusApiResponse {
 	uncategorized_count: number
 	is_processing: boolean
@@ -30,6 +37,7 @@ interface StatusApiResponse {
 	last_processed_at: string | null
 	has_error: boolean
 	error: ErrorApiResponse | null
+	progress: ProgressApiResponse | null
 }
 
 interface StartApiResponse {
@@ -80,6 +88,7 @@ interface SuggestionsApiResponse {
 	skipped_transactions: SkippedTransactionApi[]
 	total_pending: number
 	total_skipped: number
+	is_partial: boolean
 }
 
 interface ApprovalApiResponse {
@@ -173,6 +182,14 @@ export async function getCategorizationStatus(): Promise<CategorizationStatus> {
 					timestamp: data.error.timestamp,
 				}
 			: null,
+		progress: data.progress
+			? {
+					processedTransactions: data.progress.processed_transactions,
+					totalTransactions: data.progress.total_transactions,
+					currentBatch: data.progress.current_batch,
+					totalBatches: data.progress.total_batches,
+				}
+			: null,
 	}
 }
 
@@ -209,6 +226,7 @@ export async function getSuggestions(): Promise<SuggestionsResponse> {
 		skippedTransactions: data.skipped_transactions.map(transformSkippedTransaction),
 		totalPending: data.total_pending,
 		totalSkipped: data.total_skipped,
+		isPartial: data.is_partial ?? false,
 	}
 }
 

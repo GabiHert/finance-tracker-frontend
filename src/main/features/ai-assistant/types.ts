@@ -68,6 +68,14 @@ export interface AIProcessingError {
 	timestamp: string
 }
 
+// Processing Progress during batch processing
+export interface ProcessingProgress {
+	processedTransactions: number
+	totalTransactions: number
+	currentBatch: number
+	totalBatches: number
+}
+
 // Categorization status response
 export interface CategorizationStatus {
 	uncategorizedCount: number
@@ -77,6 +85,7 @@ export interface CategorizationStatus {
 	lastProcessedAt: string | null
 	hasError: boolean
 	error: AIProcessingError | null
+	progress: ProcessingProgress | null
 }
 
 // Start categorization response
@@ -92,6 +101,7 @@ export interface SuggestionsResponse {
 	skippedTransactions: SkippedTransaction[]
 	totalPending: number
 	totalSkipped: number
+	isPartial: boolean
 }
 
 // Approval result
