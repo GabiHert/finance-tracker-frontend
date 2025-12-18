@@ -4,6 +4,7 @@ import { Button } from '@main/components/ui/Button'
 import { Modal } from '@main/components/ui/Modal'
 import { SuggestionCard } from './components/SuggestionCard'
 import { EditSuggestionModal } from './components/EditSuggestionModal'
+import { AffectedTransactionsModal } from './components/AffectedTransactionsModal'
 import { ProcessingProgress } from './components/ProcessingProgress'
 import { PartialFailureBanner } from './components/PartialFailureBanner'
 import {
@@ -41,6 +42,7 @@ export function SmartCategorizationScreen() {
 
 	// Modal states
 	const [editingSuggestion, setEditingSuggestion] = useState<AISuggestion | null>(null)
+	const [viewingTransactions, setViewingTransactions] = useState<AISuggestion | null>(null)
 	const [rejectingId, setRejectingId] = useState<string | null>(null)
 	const [showClearConfirm, setShowClearConfirm] = useState(false)
 
@@ -270,6 +272,10 @@ export function SmartCategorizationScreen() {
 		setEditingSuggestion(suggestion)
 	}, [])
 
+	const handleViewAllTransactions = useCallback((suggestion: AISuggestion) => {
+		setViewingTransactions(suggestion)
+	}, [])
+
 	const handleSaveEdit = useCallback((id: string, edits: EditSuggestionInput) => {
 		handleApprove(id, edits)
 	}, [handleApprove])
@@ -490,6 +496,7 @@ export function SmartCategorizationScreen() {
 											onApprove={handleApprove}
 											onReject={(id) => setRejectingId(id)}
 											onEdit={handleEdit}
+											onViewAll={handleViewAllTransactions}
 											isProcessing={isProcessing}
 										/>
 									))}
@@ -544,6 +551,7 @@ export function SmartCategorizationScreen() {
 									onApprove={handleApprove}
 									onReject={(id) => setRejectingId(id)}
 									onEdit={handleEdit}
+									onViewAll={handleViewAllTransactions}
 									isProcessing={isProcessing}
 								/>
 							))}
@@ -652,6 +660,13 @@ export function SmartCategorizationScreen() {
 					Tem certeza que deseja limpar todas as sugestoes? Esta acao nao pode ser desfeita.
 				</p>
 			</Modal>
+
+			{/* Affected Transactions Modal */}
+			<AffectedTransactionsModal
+				isOpen={!!viewingTransactions}
+				onClose={() => setViewingTransactions(null)}
+				suggestion={viewingTransactions}
+			/>
 		</div>
 	)
 }

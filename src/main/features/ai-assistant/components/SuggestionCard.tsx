@@ -8,6 +8,7 @@ interface SuggestionCardProps {
 	onApprove: (id: string) => void
 	onReject: (id: string) => void
 	onEdit: (suggestion: AISuggestion) => void
+	onViewAll?: (suggestion: AISuggestion) => void
 	isProcessing?: boolean
 }
 
@@ -45,6 +46,7 @@ export function SuggestionCard({
 	onApprove,
 	onReject,
 	onEdit,
+	onViewAll,
 	isProcessing = false,
 }: SuggestionCardProps) {
 	const handleApprove = useCallback(() => {
@@ -58,6 +60,10 @@ export function SuggestionCard({
 	const handleEdit = useCallback(() => {
 		onEdit(suggestion)
 	}, [onEdit, suggestion])
+
+	const handleViewAll = useCallback(() => {
+		onViewAll?.(suggestion)
+	}, [onViewAll, suggestion])
 
 	const categoryName = suggestion.category.type === 'existing'
 		? suggestion.category.existingName
@@ -122,34 +128,64 @@ export function SuggestionCard({
 				<h4 className="text-sm font-medium text-[var(--color-text-secondary)] mb-2">
 					Transacoes afetadas:
 				</h4>
-				<div className="space-y-2 max-h-[200px] overflow-y-auto">
-					{suggestion.affectedTransactions.slice(0, 5).map((transaction) => (
-						<div
-							key={transaction.id}
-							data-testid="affected-transaction"
-							className="flex items-center justify-between py-2 px-3 bg-[var(--color-background)] rounded-lg"
-						>
-							<div className="flex-1 min-w-0 mr-3">
-								<p className="text-sm text-[var(--color-text)] truncate">
-									{transaction.description}
-								</p>
-								<p className="text-xs text-[var(--color-text-secondary)]">
-									{formatDate(transaction.date)}
-								</p>
+				{suggestion.affectedTransactions.length === 0 ? (
+					<p className="text-sm text-[var(--color-text-secondary)] py-4 text-center">
+						Nenhuma transacao afetada
+					</p>
+				) : (
+					<div className="space-y-2 max-h-[200px] overflow-y-auto">
+						{suggestion.affectedTransactions.slice(0, 5).map((transaction) => (
+							<div
+								key={transaction.id}
+								data-testid="affected-transaction"
+								className="flex items-center justify-between py-2 px-3 bg-[var(--color-background)] rounded-lg"
+							>
+								<div className="flex-1 min-w-0 mr-3">
+									<p
+										data-testid="transaction-description"
+										className="text-sm text-[var(--color-text)] truncate"
+									>
+										{transaction.description}
+									</p>
+									<p
+										data-testid="transaction-date"
+										className="text-xs text-[var(--color-text-secondary)]"
+									>
+										{formatDate(transaction.date)}
+									</p>
+								</div>
+								<span
+									data-testid="transaction-amount"
+									className={`text-sm font-medium ${
+										transaction.amount < 0
+											? 'text-red-600 dark:text-red-400'
+											: 'text-green-600 dark:text-green-400'
+									}`}
+								>
+									{formatCurrency(transaction.amount)}
+								</span>
 							</div>
-							<span className={`text-sm font-medium ${
-								transaction.amount < 0 ? 'text-red-600' : 'text-green-600'
-							}`}>
-								{formatCurrency(transaction.amount)}
-							</span>
-						</div>
-					))}
-					{suggestion.affectedCount > 5 && (
-						<p className="text-xs text-[var(--color-text-secondary)] text-center py-2">
-							+ {suggestion.affectedCount - 5} {suggestion.affectedCount - 5 === 1 ? 'transacao' : 'transacoes'} mais
-						</p>
-					)}
-				</div>
+						))}
+						{suggestion.affectedCount > 5 && (
+							<div className="flex items-center justify-between py-2">
+								<p
+									data-testid="more-transactions-indicator"
+									className="text-xs text-[var(--color-text-secondary)]"
+								>
+									+ {suggestion.affectedCount - 5} {suggestion.affectedCount - 5 === 1 ? 'transacao' : 'transacoes'} mais
+								</p>
+								<button
+									data-testid="view-all-transactions-btn"
+									type="button"
+									onClick={handleViewAll}
+									className="text-xs text-[var(--color-primary)] hover:text-[var(--color-primary-dark)] font-medium"
+								>
+									Ver todas
+								</button>
+							</div>
+						)}
+					</div>
+				)}
 			</div>
 
 			{/* Actions */}
