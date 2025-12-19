@@ -3,12 +3,18 @@ import { Button } from '@main/components/ui/Button'
 import { MetricCard } from './components/MetricCard'
 import { PeriodSelector, type DateRange } from './components/PeriodSelector'
 import { DonutChart } from './components/DonutChart'
-import { TrendsChart } from './components/TrendsChart'
+import { InteractiveTrendsChart } from './components/InteractiveTrendsChart'
 import { CategoryTrendsChart } from './components/CategoryTrendsChart'
 import { RecentTransactions } from './components/RecentTransactions'
 import { GoalsProgress } from './components/GoalsProgress'
 import { AlertsBanner } from './components/AlertsBanner'
-import { fetchDashboardData, type DashboardData, type CustomDateRange } from './api/dashboard'
+import {
+	fetchDashboardData,
+	fetchHistoricalTrends,
+	type DashboardData,
+	type CustomDateRange,
+	type HistoricalTrendsData,
+} from './api/dashboard'
 import { CreditCardStatusCard, getCreditCardStatus, type CreditCardStatus } from '@main/features/credit-card'
 import { PendingBanner, fetchPendingCycles, type ReconciliationSummary, type PendingCycle } from '@main/features/reconciliation'
 import type { Period } from './types'
@@ -57,6 +63,23 @@ export function DashboardScreen() {
 	const [ccStatus, setCcStatus] = useState<CreditCardStatus | null>(null)
 	const [reconciliationSummary, setReconciliationSummary] = useState<ReconciliationSummary | null>(null)
 	const [pendingCycles, setPendingCycles] = useState<PendingCycle[]>([])
+	const [historicalTrends, setHistoricalTrends] = useState<HistoricalTrendsData | null>(null)
+	const [isLoadingChart, setIsLoadingChart] = useState(true)
+
+	useEffect(() => {
+		const loadHistoricalTrends = async () => {
+			setIsLoadingChart(true)
+			try {
+				const data = await fetchHistoricalTrends()
+				setHistoricalTrends(data)
+			} catch (err) {
+				console.error('Failed to load historical trends:', err)
+			} finally {
+				setIsLoadingChart(false)
+			}
+		}
+		loadHistoricalTrends()
+	}, [])
 
 	const loadDashboardData = useCallback(async () => {
 		setIsLoading(true)
@@ -243,7 +266,12 @@ export function DashboardScreen() {
 				{/* Charts Row */}
 				<div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
 					<div className="lg:col-span-2">
-						<TrendsChart data={trendsData} />
+						<InteractiveTrendsChart
+							data={historicalTrends?.trendsData ?? []}
+							isLoading={isLoadingChart}
+							dataRangeStart={historicalTrends?.startDate}
+							dataRangeEnd={historicalTrends?.endDate}
+						/>
 					</div>
 					<div>
 						<DonutChart data={categoryBreakdown} />

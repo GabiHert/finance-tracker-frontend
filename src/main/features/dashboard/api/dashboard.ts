@@ -160,6 +160,59 @@ export interface DashboardData {
 	alerts: DashboardAlert[]
 }
 
+export interface HistoricalTrendsData {
+	trendsData: TrendDataPoint[]
+	startDate: Date
+	endDate: Date
+}
+
+/**
+ * Fetch historical trends data for the past 18 months
+ * Used by InteractiveTrendsChart for scrollable navigation
+ */
+export async function fetchHistoricalTrends(): Promise<HistoricalTrendsData> {
+	const today = new Date()
+	const endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+	const startDate = new Date(today.getFullYear() - 1, today.getMonth() - 5, 1)
+
+	const formatDate = (d: Date) => d.toISOString().split('T')[0]
+
+	const result = await fetchTransactions({
+		startDate: formatDate(startDate),
+		endDate: formatDate(endDate),
+		limit: 5000,
+	})
+
+	const trendsMap = new Map<string, { income: number; expenses: number }>()
+
+	for (const txn of result.transactions) {
+		const [day, month, year] = txn.date.split('/')
+		const dateKey = `${year}-${month}-${day}`
+
+		const existing = trendsMap.get(dateKey) || { income: 0, expenses: 0 }
+		if (txn.type === 'income') {
+			existing.income += txn.amount
+		} else {
+			existing.expenses += Math.abs(txn.amount)
+		}
+		trendsMap.set(dateKey, existing)
+	}
+
+	const trendsData: TrendDataPoint[] = Array.from(trendsMap.entries())
+		.map(([date, values]) => ({
+			date,
+			income: values.income,
+			expenses: values.expenses,
+		}))
+		.sort((a, b) => a.date.localeCompare(b.date))
+
+	return {
+		trendsData,
+		startDate,
+		endDate,
+	}
+}
+
 /**
  * Fetch all dashboard data from the transactions API
  */
