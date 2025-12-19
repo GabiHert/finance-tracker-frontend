@@ -83,7 +83,7 @@ export function TransactionModal({
 
 	return (
 		<div
-			className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+			className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 sm:p-4"
 			onClick={handleBackdropClick}
 			data-testid="modal-backdrop"
 		>
@@ -93,7 +93,7 @@ export function TransactionModal({
 				role="dialog"
 				aria-modal="true"
 				aria-labelledby="modal-title"
-				className="bg-[var(--color-surface)] rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-hidden"
+				className="bg-[var(--color-surface)] rounded-t-lg sm:rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-hidden"
 			>
 				<div className="flex items-center justify-between p-4 border-b border-[var(--color-border)]">
 					<h2

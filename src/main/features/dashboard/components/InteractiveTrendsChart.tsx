@@ -39,8 +39,26 @@ const getDateRange = (data: TrendDataPoint[]): DateRange => {
 	}
 }
 
-const formatDateLabel = (dateString: string, dateRange: DateRange): string => {
+const formatDateLabel = (dateString: string, dateRange: DateRange, zoomLevel: ZoomLevel): string => {
 	const date = new Date(dateString)
+
+	if (zoomLevel === 'quarter') {
+		const quarter = Math.floor(date.getMonth() / 3) + 1
+		const year = date.getFullYear()
+		return `T${quarter} ${year}`
+	}
+
+	if (zoomLevel === 'day') {
+		const day = date.getDate()
+		const month = new Intl.DateTimeFormat('pt-BR', { month: 'short' }).format(date)
+		return `${day} ${month.charAt(0).toUpperCase()}${month.slice(1).replace('.', '')}`
+	}
+
+	if (zoomLevel === 'week') {
+		const day = date.getDate()
+		const month = new Intl.DateTimeFormat('pt-BR', { month: 'short' }).format(date)
+		return `${day}/${month.replace('.', '')}`
+	}
 
 	if (dateRange.sameMonth) {
 		return date.getDate().toString()
@@ -264,6 +282,7 @@ export function InteractiveTrendsChart({
 
 	if (data.length === 0 && !isLoading) {
 		return (
+			<div data-testid="trends-chart">
 			<div
 				data-testid="interactive-trends-chart"
 				className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] p-4"
@@ -275,8 +294,16 @@ export function InteractiveTrendsChart({
 					data-testid="chart-empty-state"
 					className="text-center py-8 text-[var(--color-text-secondary)]"
 				>
-					Dados insuficientes para o grafico
+					<p className="mb-4">Nenhum dado disponível</p>
+					<a
+						href="/transactions/import"
+						data-testid="import-cta"
+						className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--color-primary)] text-white rounded-lg hover:bg-[var(--color-primary-dark)] transition-colors"
+					>
+						Importar transações
+					</a>
 				</div>
+			</div>
 			</div>
 		)
 	}
@@ -421,7 +448,7 @@ export function InteractiveTrendsChart({
 												textAnchor="middle"
 												className="text-xs fill-[var(--color-text-secondary)]"
 											>
-												{formatDateLabel(d.date, dateRange)}
+												{formatDateLabel(d.date, dateRange, currentZoom)}
 											</text>
 										)
 								)}

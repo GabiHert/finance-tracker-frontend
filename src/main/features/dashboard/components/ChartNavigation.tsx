@@ -51,7 +51,7 @@ export function ChartNavigation({
 			role="navigation"
 			aria-label="Navegação do gráfico"
 		>
-			<div className="flex items-center gap-2">
+			<div className="hidden sm:flex items-center gap-2">
 				<button
 					data-testid="chart-nav-prev"
 					onClick={onPrevious}
@@ -106,7 +106,7 @@ export function ChartNavigation({
 
 			<div
 				data-testid="chart-zoom-toggle"
-				className={`flex items-center gap-1 bg-[var(--color-background-secondary)] rounded-lg p-1 ${
+				className={`flex items-center gap-1 bg-[var(--color-background-secondary)] rounded-lg p-1 w-full sm:w-auto ${
 					isLoading ? 'opacity-50 pointer-events-none' : ''
 				}`}
 				role="group"
@@ -122,7 +122,7 @@ export function ChartNavigation({
 							disabled={isLoading}
 							aria-pressed={isSelected}
 							className={`
-								px-3 py-1.5 text-sm font-medium rounded-md transition-colors
+								flex-1 sm:flex-none px-3 py-1.5 text-sm font-medium rounded-md transition-colors
 								${isSelected
 									? 'bg-white text-[var(--color-primary)] shadow-sm'
 									: 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
