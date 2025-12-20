@@ -9,10 +9,43 @@ import type {
 	DashboardAlert,
 	Period,
 } from '../types'
+import { apiGet } from '@main/lib/api-client'
 
 export interface CustomDateRange {
 	startDate: string // YYYY-MM-DD format
 	endDate: string // YYYY-MM-DD format
+}
+
+export interface DataRangeResponse {
+	oldest_date: string | null
+	newest_date: string | null
+	total_transactions: number
+	has_data: boolean
+}
+
+/**
+ * Fetch data range from the dashboard API
+ * Returns the oldest and newest transaction dates and whether user has data
+ */
+export async function fetchDataRange(): Promise<DataRangeResponse> {
+	const response = await apiGet<{ data: DataRangeResponse }>('/api/v1/dashboard/data-range')
+	return response.data
+}
+
+/**
+ * Fetch trends data from the dashboard API for a given period
+ * Used when navigating to trigger server-side validation
+ */
+export async function fetchDashboardTrends(startDate: string, endDate: string, granularity?: string): Promise<TrendDataPoint[]> {
+	const params = new URLSearchParams({
+		start_date: startDate,
+		end_date: endDate,
+	})
+	if (granularity) {
+		params.append('granularity', granularity)
+	}
+	const response = await apiGet<{ data: TrendDataPoint[] }>(`/api/v1/dashboard/trends?${params.toString()}`)
+	return response.data
 }
 
 export interface FetchDashboardOptions {
