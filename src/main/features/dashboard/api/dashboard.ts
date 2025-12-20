@@ -9,10 +9,43 @@ import type {
 	DashboardAlert,
 	Period,
 } from '../types'
+import { apiGet } from '@main/lib/api-client'
 
 export interface CustomDateRange {
 	startDate: string // YYYY-MM-DD format
 	endDate: string // YYYY-MM-DD format
+}
+
+export interface DataRangeResponse {
+	oldest_date: string | null
+	newest_date: string | null
+	total_transactions: number
+	has_data: boolean
+}
+
+/**
+ * Fetch data range from the dashboard API
+ * Returns the oldest and newest transaction dates and whether user has data
+ */
+export async function fetchDataRange(): Promise<DataRangeResponse> {
+	const response = await apiGet<{ data: DataRangeResponse }>('/api/v1/dashboard/data-range')
+	return response.data
+}
+
+/**
+ * Fetch trends data from the dashboard API for a given period
+ * Used when navigating to trigger server-side validation
+ */
+export async function fetchDashboardTrends(startDate: string, endDate: string, granularity?: string): Promise<TrendDataPoint[]> {
+	const params = new URLSearchParams({
+		start_date: startDate,
+		end_date: endDate,
+	})
+	if (granularity) {
+		params.append('granularity', granularity)
+	}
+	const response = await apiGet<{ data: TrendDataPoint[] }>(`/api/v1/dashboard/trends?${params.toString()}`)
+	return response.data
 }
 
 export interface FetchDashboardOptions {
@@ -158,6 +191,59 @@ export interface DashboardData {
 	recentTransactions: RecentTransaction[]
 	goalsProgress: GoalProgress[]
 	alerts: DashboardAlert[]
+}
+
+export interface HistoricalTrendsData {
+	trendsData: TrendDataPoint[]
+	startDate: Date
+	endDate: Date
+}
+
+/**
+ * Fetch historical trends data for the past 18 months
+ * Used by InteractiveTrendsChart for scrollable navigation
+ */
+export async function fetchHistoricalTrends(): Promise<HistoricalTrendsData> {
+	const today = new Date()
+	const endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+	const startDate = new Date(today.getFullYear() - 1, today.getMonth() - 5, 1)
+
+	const formatDate = (d: Date) => d.toISOString().split('T')[0]
+
+	const result = await fetchTransactions({
+		startDate: formatDate(startDate),
+		endDate: formatDate(endDate),
+		limit: 5000,
+	})
+
+	const trendsMap = new Map<string, { income: number; expenses: number }>()
+
+	for (const txn of result.transactions) {
+		const [day, month, year] = txn.date.split('/')
+		const dateKey = `${year}-${month}-${day}`
+
+		const existing = trendsMap.get(dateKey) || { income: 0, expenses: 0 }
+		if (txn.type === 'income') {
+			existing.income += txn.amount
+		} else {
+			existing.expenses += Math.abs(txn.amount)
+		}
+		trendsMap.set(dateKey, existing)
+	}
+
+	const trendsData: TrendDataPoint[] = Array.from(trendsMap.entries())
+		.map(([date, values]) => ({
+			date,
+			income: values.income,
+			expenses: values.expenses,
+		}))
+		.sort((a, b) => a.date.localeCompare(b.date))
+
+	return {
+		trendsData,
+		startDate,
+		endDate,
+	}
 }
 
 /**
