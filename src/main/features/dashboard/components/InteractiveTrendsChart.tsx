@@ -103,6 +103,11 @@ const getViewportSize = (zoom: ZoomLevel): number => {
 	}
 }
 
+// Zoom constraints
+const MIN_VIEWPORT_SIZE = 7 // 1 week minimum
+const MAX_VIEWPORT_SIZE = 365 // 1 year maximum
+const ZOOM_FACTOR = 0.2 // 20% zoom per wheel tick
+
 export function InteractiveTrendsChart({
 	data,
 	isLoading = false,
@@ -117,19 +122,24 @@ export function InteractiveTrendsChart({
 	const viewportRef = useRef<HTMLDivElement>(null)
 	const chartRegionRef = useRef<HTMLDivElement>(null)
 	const [currentZoom, setCurrentZoom] = useState<ZoomLevel>('month')
+	// Custom viewport size for wheel/pinch zoom (null = use preset)
+	const [customViewportSize, setCustomViewportSize] = useState<number | null>(null)
 	// Initialize viewportStartIndex to -1 to indicate "not yet calculated"
 	const [viewportStartIndex, setViewportStartIndex] = useState(-1)
 	const [isDragging, setIsDragging] = useState(false)
+	const [isPinching, setIsPinching] = useState(false)
 	const [selectedDate, setSelectedDate] = useState<string | null>(null)
 	const [isModalOpen, setIsModalOpen] = useState(false)
 	const [isZoomLoading, setIsZoomLoading] = useState(false)
 	const [isModalLoading, setIsModalLoading] = useState(false)
 	const dragStartRef = useRef({ x: 0, startIndex: 0 })
+	const pinchStartRef = useRef({ distance: 0, viewportSize: 0 })
 	const descriptionId = useId()
 	const { showToast } = useToast()
 
-	// Get dynamic viewport size based on current zoom level
-	const viewportSize = useMemo(() => getViewportSize(currentZoom), [currentZoom])
+	// Get dynamic viewport size - custom overrides preset
+	const presetViewportSize = useMemo(() => getViewportSize(currentZoom), [currentZoom])
+	const viewportSize = customViewportSize ?? presetViewportSize
 
 	const fullDataRangeStart = useMemo(() => {
 		if (dataRangeStart) return dataRangeStart
@@ -198,6 +208,8 @@ export function InteractiveTrendsChart({
 		(zoom: ZoomLevel) => {
 			setIsZoomLoading(true)
 			setCurrentZoom(zoom)
+			// Clear custom viewport size to use preset
+			setCustomViewportSize(null)
 			// Reset to -1 to auto-position to the end (most recent data)
 			setViewportStartIndex(-1)
 			onZoomChange?.(zoom)
@@ -270,6 +282,102 @@ export function InteractiveTrendsChart({
 		setIsDragging(false)
 	}, [])
 
+	// Mouse wheel zoom - centered on cursor position
+	const handleWheel = useCallback(
+		(event: WheelEvent) => {
+			if (!viewportRef.current || data.length === 0) return
+
+			event.preventDefault()
+
+			const rect = viewportRef.current.getBoundingClientRect()
+			const cursorX = event.clientX - rect.left
+			const cursorRatio = cursorX / rect.width // 0 to 1, where cursor is
+
+			// Determine zoom direction (wheel up = zoom in = smaller viewport)
+			const zoomIn = event.deltaY < 0
+			const currentSize = customViewportSize ?? presetViewportSize
+			const zoomMultiplier = zoomIn ? (1 - ZOOM_FACTOR) : (1 + ZOOM_FACTOR)
+			const newSize = Math.round(
+				Math.max(MIN_VIEWPORT_SIZE, Math.min(MAX_VIEWPORT_SIZE, currentSize * zoomMultiplier))
+			)
+
+			if (newSize === currentSize) return
+
+			// Adjust viewport start to keep cursor position stable
+			const sizeDelta = currentSize - newSize
+			const cursorIndexOffset = Math.round(sizeDelta * cursorRatio)
+			const newStartIndex = Math.max(
+				0,
+				Math.min(data.length - newSize, effectiveStartIndex + cursorIndexOffset)
+			)
+
+			setCustomViewportSize(newSize)
+			setViewportStartIndex(newStartIndex)
+		},
+		[data.length, customViewportSize, presetViewportSize, effectiveStartIndex]
+	)
+
+	// Touch handlers for pinch-to-zoom
+	const getTouchDistance = (touches: TouchList): number => {
+		if (touches.length < 2) return 0
+		const dx = touches[0].clientX - touches[1].clientX
+		const dy = touches[0].clientY - touches[1].clientY
+		return Math.sqrt(dx * dx + dy * dy)
+	}
+
+	const handleTouchStart = useCallback(
+		(event: TouchEvent) => {
+			if (event.touches.length === 2) {
+				// Start pinch zoom
+				event.preventDefault()
+				setIsPinching(true)
+				pinchStartRef.current = {
+					distance: getTouchDistance(event.touches),
+					viewportSize: customViewportSize ?? presetViewportSize,
+				}
+			}
+		},
+		[customViewportSize, presetViewportSize]
+	)
+
+	const handleTouchMove = useCallback(
+		(event: TouchEvent) => {
+			if (!isPinching || event.touches.length !== 2 || data.length === 0) return
+
+			event.preventDefault()
+
+			const currentDistance = getTouchDistance(event.touches)
+			const startDistance = pinchStartRef.current.distance
+			const startViewportSize = pinchStartRef.current.viewportSize
+
+			if (startDistance === 0) return
+
+			// Pinch out (spread fingers) = zoom in = smaller viewport
+			// Pinch in (squeeze fingers) = zoom out = larger viewport
+			const scale = startDistance / currentDistance
+			const newSize = Math.round(
+				Math.max(MIN_VIEWPORT_SIZE, Math.min(MAX_VIEWPORT_SIZE, startViewportSize * scale))
+			)
+
+			if (newSize !== (customViewportSize ?? presetViewportSize)) {
+				// Center the zoom on the midpoint of the pinch
+				const sizeDelta = (customViewportSize ?? presetViewportSize) - newSize
+				const newStartIndex = Math.max(
+					0,
+					Math.min(data.length - newSize, effectiveStartIndex + Math.round(sizeDelta / 2))
+				)
+
+				setCustomViewportSize(newSize)
+				setViewportStartIndex(newStartIndex)
+			}
+		},
+		[isPinching, data.length, customViewportSize, presetViewportSize, effectiveStartIndex]
+	)
+
+	const handleTouchEnd = useCallback(() => {
+		setIsPinching(false)
+	}, [])
+
 	const handleDataPointClick = useCallback((event: React.MouseEvent, date: string) => {
 		event.stopPropagation()
 		setSelectedDate(date)
@@ -302,6 +410,35 @@ export function InteractiveTrendsChart({
 			}
 		}
 	}, [isDragging, handleMouseMove, handleMouseUp])
+
+	// Wheel zoom event listener
+	useEffect(() => {
+		const viewport = viewportRef.current
+		if (!viewport) return
+
+		viewport.addEventListener('wheel', handleWheel, { passive: false })
+		return () => {
+			viewport.removeEventListener('wheel', handleWheel)
+		}
+	}, [handleWheel])
+
+	// Touch events for pinch zoom
+	useEffect(() => {
+		const viewport = viewportRef.current
+		if (!viewport) return
+
+		viewport.addEventListener('touchstart', handleTouchStart, { passive: false })
+		viewport.addEventListener('touchmove', handleTouchMove, { passive: false })
+		viewport.addEventListener('touchend', handleTouchEnd)
+		viewport.addEventListener('touchcancel', handleTouchEnd)
+
+		return () => {
+			viewport.removeEventListener('touchstart', handleTouchStart)
+			viewport.removeEventListener('touchmove', handleTouchMove)
+			viewport.removeEventListener('touchend', handleTouchEnd)
+			viewport.removeEventListener('touchcancel', handleTouchEnd)
+		}
+	}, [handleTouchStart, handleTouchMove, handleTouchEnd])
 
 	useEffect(() => {
 		if (visibleData.length > 0 && onViewportChange) {
@@ -497,7 +634,7 @@ export function InteractiveTrendsChart({
 									d={incomePath}
 									fill="none"
 									stroke="#10B981"
-									strokeWidth="1.5"
+									strokeWidth="1"
 									strokeLinecap="round"
 									strokeLinejoin="round"
 								/>
@@ -507,43 +644,47 @@ export function InteractiveTrendsChart({
 									d={expensesPath}
 									fill="none"
 									stroke="#EF4444"
-									strokeWidth="1.5"
+									strokeWidth="1"
 									strokeLinecap="round"
 									strokeLinejoin="round"
 								/>
 
 								{visibleData.map((d, i) => (
 									<g key={`point-${i}`}>
-										<circle
-											data-testid="chart-data-point"
-											cx={getX(i)}
-											cy={getY(d.income)}
-											r="6"
-											fill="#10B981"
-											tabIndex={0}
-											role="button"
-											aria-label={`Receita em ${d.date}: R$ ${d.income.toFixed(2)}`}
-											className="cursor-pointer hover:opacity-80 focus:outline-none"
-											style={{ outline: 'none', pointerEvents: 'auto' }}
-											onClick={(e) => handleDataPointClick(e, d.date)}
-											onMouseDown={(e) => e.stopPropagation()}
-											onKeyDown={(e) => handleDataPointKeyDown(e, d.date)}
-										/>
-										<circle
-											data-testid="chart-data-point"
-											cx={getX(i)}
-											cy={getY(d.expenses)}
-											r="6"
-											fill="#EF4444"
-											tabIndex={0}
-											role="button"
-											aria-label={`Despesa em ${d.date}: R$ ${d.expenses.toFixed(2)}`}
-											className="cursor-pointer hover:opacity-80 focus:outline-none"
-											style={{ outline: 'none', pointerEvents: 'auto' }}
-											onClick={(e) => handleDataPointClick(e, d.date)}
-											onMouseDown={(e) => e.stopPropagation()}
-											onKeyDown={(e) => handleDataPointKeyDown(e, d.date)}
-										/>
+										<g transform={`translate(${getX(i)}, ${getY(d.income)})`}>
+											<circle
+												data-testid="chart-data-point"
+												cx="0"
+												cy="0"
+												r="3"
+												fill="#10B981"
+												tabIndex={0}
+												role="button"
+												aria-label={`Receita em ${d.date}: R$ ${d.income.toFixed(2)}`}
+												className="cursor-pointer focus:outline-none transition-transform duration-150 hover:scale-150"
+												style={{ outline: 'none', pointerEvents: 'auto' }}
+												onClick={(e) => handleDataPointClick(e, d.date)}
+												onMouseDown={(e) => e.stopPropagation()}
+												onKeyDown={(e) => handleDataPointKeyDown(e, d.date)}
+											/>
+										</g>
+										<g transform={`translate(${getX(i)}, ${getY(d.expenses)})`}>
+											<circle
+												data-testid="chart-data-point"
+												cx="0"
+												cy="0"
+												r="3"
+												fill="#EF4444"
+												tabIndex={0}
+												role="button"
+												aria-label={`Despesa em ${d.date}: R$ ${d.expenses.toFixed(2)}`}
+												className="cursor-pointer focus:outline-none transition-transform duration-150 hover:scale-150"
+												style={{ outline: 'none', pointerEvents: 'auto' }}
+												onClick={(e) => handleDataPointClick(e, d.date)}
+												onMouseDown={(e) => e.stopPropagation()}
+												onKeyDown={(e) => handleDataPointKeyDown(e, d.date)}
+											/>
+										</g>
 									</g>
 								))}
 
