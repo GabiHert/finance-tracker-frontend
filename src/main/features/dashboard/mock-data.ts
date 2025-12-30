@@ -56,9 +56,9 @@ export const mockCategoryBreakdown: CategoryBreakdown[] = [
 ]
 
 export const mockTrendsData: TrendDataPoint[] = [
-	{ date: '2025-09-01', income: 8000, expenses: 5800 },
-	{ date: '2025-10-01', income: 8200, expenses: 6100 },
-	{ date: '2025-11-01', income: 8500, expenses: 6230 },
+	{ date: '2025-09-01', income: 8000, expenses: 5800, cumulativeBalance: 2200 },
+	{ date: '2025-10-01', income: 8200, expenses: 6100, cumulativeBalance: 4300 },
+	{ date: '2025-11-01', income: 8500, expenses: 6230, cumulativeBalance: 6570 },
 ]
 
 export const mockRecentTransactions: RecentTransaction[] = [

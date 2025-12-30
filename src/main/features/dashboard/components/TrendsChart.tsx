@@ -62,6 +62,7 @@ export function TrendsChart({ data }: TrendsChartProps) {
 		return (
 			<div
 				data-testid="trends-chart"
+				data-chart-type="cumulative-balance"
 				className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] p-4"
 			>
 				<h3 className="text-lg font-medium text-[var(--color-text)] mb-4">Evolucao Financeira</h3>
@@ -72,32 +73,49 @@ export function TrendsChart({ data }: TrendsChartProps) {
 		)
 	}
 
-	const maxValue = Math.max(...data.flatMap((d) => [d.income, d.expenses]))
 	const chartHeight = 150
 	const chartWidth = 300
 	const padding = 20
 	const dateRange = getDateRange(data)
 
+	const allBalances = data.map((d) => d.cumulativeBalance)
+	const maxBalance = Math.max(...allBalances, 0)
+	const minBalance = Math.min(...allBalances, 0)
+	const range = maxBalance - minBalance || 1
+
 	const getY = (value: number) => {
-		return chartHeight - padding - (value / maxValue) * (chartHeight - padding * 2)
+		const normalizedValue = (value - minBalance) / range
+		return chartHeight - padding - normalizedValue * (chartHeight - padding * 2)
 	}
 
 	const getX = (index: number) => {
+		if (data.length === 1) return chartWidth / 2
 		return padding + (index / (data.length - 1)) * (chartWidth - padding * 2)
 	}
 
-	const incomePath = data.map((d, i) => `${i === 0 ? 'M' : 'L'} ${getX(i)} ${getY(d.income)}`).join(' ')
-	const expensesPath = data.map((d, i) => `${i === 0 ? 'M' : 'L'} ${getX(i)} ${getY(d.expenses)}`).join(' ')
+	const zeroY = getY(0)
+	const zeroLineRatio = Math.max(0, Math.min(1, maxBalance / range))
+	const balancePath = data.map((d, i) => `${i === 0 ? 'M' : 'L'} ${getX(i)} ${getY(d.cumulativeBalance)}`).join(' ')
 
 	return (
 		<div
 			data-testid="trends-chart"
+			data-chart-type="cumulative-balance"
 			className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] p-4"
 		>
 			<h3 className="text-lg font-medium text-[var(--color-text)] mb-4">Evolucao Financeira</h3>
 
 			<div data-testid="chart-container" className="relative">
 				<svg viewBox={`0 0 ${chartWidth} ${chartHeight + 30}`} className="w-full h-auto">
+					<defs>
+						<linearGradient id="balanceGradient" x1="0" y1="0" x2="0" y2="1">
+							<stop offset="0%" stopColor="#10B981" />
+							<stop offset={`${zeroLineRatio * 100}%`} stopColor="#10B981" />
+							<stop offset={`${zeroLineRatio * 100}%`} stopColor="#EF4444" />
+							<stop offset="100%" stopColor="#EF4444" />
+						</linearGradient>
+					</defs>
+
 					{/* Grid lines */}
 					{[0, 1, 2, 3, 4].map((i) => (
 						<line
@@ -111,36 +129,39 @@ export function TrendsChart({ data }: TrendsChartProps) {
 						/>
 					))}
 
-					{/* Income line */}
+					{/* Zero reference line */}
+					<line
+						data-testid="zero-line"
+						x1={padding}
+						y1={zeroY}
+						x2={chartWidth - padding}
+						y2={zeroY}
+						stroke="#9CA3AF"
+						strokeWidth="1"
+						strokeDasharray="4 4"
+					/>
+
+					{/* Balance line */}
 					<path
-						data-testid="chart-line"
-						d={incomePath}
+						data-testid="balance-line"
+						d={balancePath}
 						fill="none"
-						stroke="#10B981"
+						stroke="url(#balanceGradient)"
 						strokeWidth="1.5"
 						strokeLinecap="round"
 						strokeLinejoin="round"
 					/>
 
-					{/* Expenses line */}
-					<path
-						data-testid="chart-line"
-						d={expensesPath}
-						fill="none"
-						stroke="#EF4444"
-						strokeWidth="1.5"
-						strokeLinecap="round"
-						strokeLinejoin="round"
-					/>
-
-					{/* Data points - Income */}
+					{/* Data points */}
 					{data.map((d, i) => (
-						<circle key={`income-${i}`} cx={getX(i)} cy={getY(d.income)} r="3" fill="#10B981" />
-					))}
-
-					{/* Data points - Expenses */}
-					{data.map((d, i) => (
-						<circle key={`expense-${i}`} cx={getX(i)} cy={getY(d.expenses)} r="3" fill="#EF4444" />
+						<circle
+							key={`balance-${i}`}
+							data-testid="chart-data-point"
+							cx={getX(i)}
+							cy={getY(d.cumulativeBalance)}
+							r="3"
+							fill={d.cumulativeBalance >= 0 ? '#10B981' : '#EF4444'}
+						/>
 					))}
 
 					{/* X-axis labels */}
@@ -165,11 +186,11 @@ export function TrendsChart({ data }: TrendsChartProps) {
 			<div className="flex items-center justify-center gap-6 mt-4">
 				<div className="flex items-center gap-2">
 					<span className="w-3 h-3 rounded-full bg-green-500" />
-					<span className="text-sm text-[var(--color-text-secondary)]">Receitas</span>
+					<span className="text-sm text-[var(--color-text-secondary)]">Saldo Positivo</span>
 				</div>
 				<div className="flex items-center gap-2">
 					<span className="w-3 h-3 rounded-full bg-red-500" />
-					<span className="text-sm text-[var(--color-text-secondary)]">Despesas</span>
+					<span className="text-sm text-[var(--color-text-secondary)]">Saldo Negativo</span>
 				</div>
 			</div>
 		</div>

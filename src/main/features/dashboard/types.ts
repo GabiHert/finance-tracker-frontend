@@ -20,6 +20,7 @@ export interface TrendDataPoint {
 	date: string
 	income: number
 	expenses: number
+	cumulativeBalance: number
 }
 
 export interface RecentTransaction {

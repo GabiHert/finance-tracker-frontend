@@ -449,22 +449,27 @@ export function InteractiveTrendsChart({
 	}, [visibleData, onViewportChange])
 
 	const dateRange = getDateRange(visibleData)
-	const maxValue = Math.max(
-		...visibleData.flatMap((d) => [d.income, d.expenses]),
-		1
-	)
 	const chartHeight = 150
 	const chartWidth = 300
 	const padding = 20
 
+	const allBalances = visibleData.map((d) => d.cumulativeBalance)
+	const maxBalance = Math.max(...allBalances, 0)
+	const minBalance = Math.min(...allBalances, 0)
+	const range = maxBalance - minBalance || 1
+
 	const getY = (value: number) => {
-		return chartHeight - padding - (value / maxValue) * (chartHeight - padding * 2)
+		const normalizedValue = (value - minBalance) / range
+		return chartHeight - padding - normalizedValue * (chartHeight - padding * 2)
 	}
 
 	const getX = (index: number) => {
 		if (visibleData.length === 1) return chartWidth / 2
 		return padding + (index / (visibleData.length - 1)) * (chartWidth - padding * 2)
 	}
+
+	const zeroY = getY(0)
+	const zeroLineRatio = Math.max(0, Math.min(1, maxBalance / range))
 
 	const selectedDataPoint = selectedDate
 		? visibleData.find((d) => d.date === selectedDate) || data.find((d) => d.date === selectedDate)
@@ -476,6 +481,7 @@ export function InteractiveTrendsChart({
 			<div data-testid="trends-chart">
 			<div
 				data-testid="interactive-trends-chart"
+				data-chart-type="cumulative-balance"
 				className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] p-4"
 			>
 				<h3 className="text-lg font-medium text-[var(--color-text)] mb-4">
@@ -499,11 +505,8 @@ export function InteractiveTrendsChart({
 		)
 	}
 
-	const incomePath = visibleData
-		.map((d, i) => `${i === 0 ? 'M' : 'L'} ${getX(i)} ${getY(d.income)}`)
-		.join(' ')
-	const expensesPath = visibleData
-		.map((d, i) => `${i === 0 ? 'M' : 'L'} ${getX(i)} ${getY(d.expenses)}`)
+	const balancePath = visibleData
+		.map((d, i) => `${i === 0 ? 'M' : 'L'} ${getX(i)} ${getY(d.cumulativeBalance)}`)
 		.join(' ')
 
 	return (
@@ -511,6 +514,7 @@ export function InteractiveTrendsChart({
 		<div
 			ref={containerRef}
 			data-testid="interactive-trends-chart"
+			data-chart-type="cumulative-balance"
 			className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] p-4"
 		>
 			<div className="flex items-center justify-between mb-4">
@@ -613,8 +617,17 @@ export function InteractiveTrendsChart({
 						viewBox={`0 0 ${chartWidth} ${chartHeight + 30}`}
 						className="w-full h-auto select-none"
 						role="img"
-						aria-label="Gráfico de linha mostrando receitas e despesas"
+						aria-label="Gráfico de evolução do saldo acumulado"
 					>
+						<defs>
+							<linearGradient id="interactiveBalanceGradient" x1="0" y1="0" x2="0" y2="1">
+								<stop offset="0%" stopColor="#10B981" />
+								<stop offset={`${zeroLineRatio * 100}%`} stopColor="#10B981" />
+								<stop offset={`${zeroLineRatio * 100}%`} stopColor="#EF4444" />
+								<stop offset="100%" stopColor="#EF4444" />
+							</linearGradient>
+						</defs>
+
 						{[0, 1, 2, 3, 4].map((i) => (
 							<line
 								key={i}
@@ -629,62 +642,47 @@ export function InteractiveTrendsChart({
 
 						{visibleData.length > 0 && (
 							<>
-								<path
-									data-testid="chart-line"
-									d={incomePath}
-									fill="none"
-									stroke="#10B981"
+								{/* Zero reference line */}
+								<line
+									data-testid="zero-line"
+									x1={padding}
+									y1={zeroY}
+									x2={chartWidth - padding}
+									y2={zeroY}
+									stroke="#9CA3AF"
 									strokeWidth="1"
+									strokeDasharray="4 4"
+								/>
+
+								{/* Balance line */}
+								<path
+									data-testid="balance-line"
+									d={balancePath}
+									fill="none"
+									stroke="url(#interactiveBalanceGradient)"
+									strokeWidth="1.5"
 									strokeLinecap="round"
 									strokeLinejoin="round"
 								/>
 
-								<path
-									data-testid="chart-line"
-									d={expensesPath}
-									fill="none"
-									stroke="#EF4444"
-									strokeWidth="1"
-									strokeLinecap="round"
-									strokeLinejoin="round"
-								/>
-
+								{/* Data points */}
 								{visibleData.map((d, i) => (
-									<g key={`point-${i}`}>
-										<g transform={`translate(${getX(i)}, ${getY(d.income)})`}>
-											<circle
-												data-testid="chart-data-point"
-												cx="0"
-												cy="0"
-												r="3"
-												fill="#10B981"
-												tabIndex={0}
-												role="button"
-												aria-label={`Receita em ${d.date}: R$ ${d.income.toFixed(2)}`}
-												className="cursor-pointer focus:outline-none transition-transform duration-150 hover:scale-150"
-												style={{ outline: 'none', pointerEvents: 'auto' }}
-												onClick={(e) => handleDataPointClick(e, d.date)}
-												onMouseDown={(e) => e.stopPropagation()}
-												onKeyDown={(e) => handleDataPointKeyDown(e, d.date)}
-											/>
-										</g>
-										<g transform={`translate(${getX(i)}, ${getY(d.expenses)})`}>
-											<circle
-												data-testid="chart-data-point"
-												cx="0"
-												cy="0"
-												r="3"
-												fill="#EF4444"
-												tabIndex={0}
-												role="button"
-												aria-label={`Despesa em ${d.date}: R$ ${d.expenses.toFixed(2)}`}
-												className="cursor-pointer focus:outline-none transition-transform duration-150 hover:scale-150"
-												style={{ outline: 'none', pointerEvents: 'auto' }}
-												onClick={(e) => handleDataPointClick(e, d.date)}
-												onMouseDown={(e) => e.stopPropagation()}
-												onKeyDown={(e) => handleDataPointKeyDown(e, d.date)}
-											/>
-										</g>
+									<g key={`point-${i}`} transform={`translate(${getX(i)}, ${getY(d.cumulativeBalance)})`}>
+										<circle
+											data-testid="chart-data-point"
+											cx="0"
+											cy="0"
+											r="3"
+											fill={d.cumulativeBalance >= 0 ? '#10B981' : '#EF4444'}
+											tabIndex={0}
+											role="button"
+											aria-label={`Saldo em ${d.date}: R$ ${d.cumulativeBalance.toFixed(2)}${d.cumulativeBalance >= 0 ? ' (positivo)' : ' (negativo)'}`}
+											className="cursor-pointer focus:outline-none transition-transform duration-150 hover:scale-150"
+											style={{ outline: 'none', pointerEvents: 'auto' }}
+											onClick={(e) => handleDataPointClick(e, d.date)}
+											onMouseDown={(e) => e.stopPropagation()}
+											onKeyDown={(e) => handleDataPointKeyDown(e, d.date)}
+										/>
 									</g>
 								))}
 
@@ -732,11 +730,11 @@ export function InteractiveTrendsChart({
 			<div className="flex items-center justify-center gap-6 mt-4">
 				<div className="flex items-center gap-2">
 					<span className="w-3 h-3 rounded-full bg-green-500" />
-					<span className="text-sm text-[var(--color-text-secondary)]">Receitas</span>
+					<span className="text-sm text-[var(--color-text-secondary)]">Saldo Positivo</span>
 				</div>
 				<div className="flex items-center gap-2">
 					<span className="w-3 h-3 rounded-full bg-red-500" />
-					<span className="text-sm text-[var(--color-text-secondary)]">Despesas</span>
+					<span className="text-sm text-[var(--color-text-secondary)]">Saldo Negativo</span>
 				</div>
 			</div>
 

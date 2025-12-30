@@ -219,6 +219,7 @@ export async function fetchHistoricalTrends(): Promise<HistoricalTrendsData> {
 	const trendsMap = new Map<string, { income: number; expenses: number }>()
 
 	for (const txn of result.transactions) {
+		if (!txn.date) continue
 		const [day, month, year] = txn.date.split('/')
 		const dateKey = `${year}-${month}-${day}`
 
@@ -231,13 +232,24 @@ export async function fetchHistoricalTrends(): Promise<HistoricalTrendsData> {
 		trendsMap.set(dateKey, existing)
 	}
 
-	const trendsData: TrendDataPoint[] = Array.from(trendsMap.entries())
+	// Sort by date first, then calculate cumulative balance
+	const sortedEntries = Array.from(trendsMap.entries())
 		.map(([date, values]) => ({
 			date,
 			income: values.income,
 			expenses: values.expenses,
 		}))
 		.sort((a, b) => a.date.localeCompare(b.date))
+
+	// Calculate cumulative balance
+	let runningBalance = 0
+	const trendsData: TrendDataPoint[] = sortedEntries.map(point => {
+		runningBalance += point.income - point.expenses
+		return {
+			...point,
+			cumulativeBalance: runningBalance,
+		}
+	})
 
 	return {
 		trendsData,
@@ -364,6 +376,7 @@ export async function fetchDashboardData(options: FetchDashboardOptions | Period
 	const trendsMap = new Map<string, { income: number; expenses: number }>()
 
 	for (const txn of currentResult.transactions) {
+		if (!txn.date) continue
 		// Convert DD/MM/YYYY to YYYY-MM-DD for sorting
 		const [day, month, year] = txn.date.split('/')
 		const dateKey = `${year}-${month}-${day}`
@@ -377,13 +390,24 @@ export async function fetchDashboardData(options: FetchDashboardOptions | Period
 		trendsMap.set(dateKey, existing)
 	}
 
-	const trendsData: TrendDataPoint[] = Array.from(trendsMap.entries())
+	// Sort by date first, then calculate cumulative balance
+	const sortedTrends = Array.from(trendsMap.entries())
 		.map(([date, values]) => ({
 			date,
 			income: values.income,
 			expenses: values.expenses,
 		}))
 		.sort((a, b) => a.date.localeCompare(b.date))
+
+	// Calculate cumulative balance
+	let runningBalance = 0
+	const trendsData: TrendDataPoint[] = sortedTrends.map(point => {
+		runningBalance += point.income - point.expenses
+		return {
+			...point,
+			cumulativeBalance: runningBalance,
+		}
+	})
 
 	// Recent transactions (last 5)
 	const recentTransactions: RecentTransaction[] = currentResult.transactions
