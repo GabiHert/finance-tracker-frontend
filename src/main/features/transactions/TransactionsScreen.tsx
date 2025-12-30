@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Button } from '@main/components/ui/Button'
 import { Modal } from '@main/components/ui/Modal'
@@ -34,14 +34,18 @@ export function TransactionsScreen() {
 	const isEmpty = searchParams.get('empty') === 'true'
 	const { showToast } = useToast()
 
+	// Initialize filters from URL parameters if present
+	const initialStartDate = searchParams.get('startDate') || ''
+	const initialEndDate = searchParams.get('endDate') || ''
+
 	const [transactions, setTransactions] = useState<Transaction[]>([])
 	const [isLoading, setIsLoading] = useState(!isEmpty)
 	const [error, setError] = useState<string | null>(null)
 	const [totals, setTotals] = useState({ income: 0, expense: 0, net: 0 })
 	const [filters, setFilters] = useState<TransactionFilters>({
 		search: '',
-		startDate: '',
-		endDate: '',
+		startDate: initialStartDate,
+		endDate: initialEndDate,
 		categoryId: '',
 		type: 'all',
 	})
@@ -115,6 +119,28 @@ export function TransactionsScreen() {
 	useEffect(() => {
 		loadCcStatus()
 	}, [loadCcStatus])
+
+	// Track previous URL search string to detect actual navigation
+	const prevSearchStringRef = useRef(searchParams.toString())
+
+	// Sync filters with URL params when URL actually changes (e.g., navigation)
+	useEffect(() => {
+		const currentSearchString = searchParams.toString()
+
+		// Only sync if URL actually changed (not just re-render)
+		if (currentSearchString !== prevSearchStringRef.current) {
+			prevSearchStringRef.current = currentSearchString
+
+			const urlStartDate = searchParams.get('startDate') || ''
+			const urlEndDate = searchParams.get('endDate') || ''
+
+			setFilters(prev => ({
+				...prev,
+				startDate: urlStartDate,
+				endDate: urlEndDate,
+			}))
+		}
+	}, [searchParams])
 
 	// Filter transactions locally for search (API handles type and category filters)
 	const filteredTransactions = useMemo(() => {
